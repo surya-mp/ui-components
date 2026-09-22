@@ -20,6 +20,40 @@ describe('page compositions', () => {
     });
   });
 
+  it('supports provider-only or combined sign-in methods', async () => {
+    const user = userEvent.setup();
+    const onProviderLogin = vi.fn();
+    const onSubmit = vi.fn();
+    const { rerender } = render(
+      <LoginPage
+        as="div"
+        emailPassword={false}
+        providers={['google', 'github']}
+        onProviderLogin={onProviderLogin}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+    expect(screen.queryByText('OR')).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Continue with Google' }),
+    );
+    expect(onProviderLogin).toHaveBeenCalledWith('google');
+
+    rerender(
+      <LoginPage
+        as="div"
+        providers={['google', 'github']}
+        onProviderLogin={onProviderLogin}
+        onSubmit={onSubmit}
+      />,
+    );
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Continue with GitHub' }),
+    ).toBeInTheDocument();
+  });
+
   it('requires confirmation before destructive account actions', async () => {
     const user = userEvent.setup();
     const onDeleteAccount = vi.fn();

@@ -28,3 +28,33 @@ Apply `--rui-*` CSS variables to your application or a page wrapper to change
 the color palette and shape. Page components remain data-and-callback driven,
 so your application retains ownership of authentication, routing, APIs, and
 payments.
+
+## Authentication methods
+
+`LoginPage`, `SignupPage`, and `AuthModal` can show email/password and any
+selection of provider buttons. Email/password is enabled by default; set
+`emailPassword={false}` for provider-only sign-in. The library calls your
+handler and never owns OAuth client IDs, redirects, or callback exchanges.
+
+```tsx
+const startOAuth = (provider: string) => {
+  window.location.assign(`/auth/${provider}`);
+};
+
+// Email/password only
+<LoginPage onSubmit={signInWithPassword} />;
+
+// Google only (or use 'github')
+<LoginPage
+  emailPassword={false}
+  providers={['google']}
+  onProviderLogin={startOAuth}
+/>;
+
+// Email/password, Google, and GitHub
+<LoginPage
+  providers={['google', 'github']}
+  onProviderLogin={startOAuth}
+  onSubmit={signInWithPassword}
+/>;
+```
