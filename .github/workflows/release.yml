@@ -30,9 +30,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build
       - id: changesets
-        uses: changesets/action@v2
+        uses: changesets/action@v1
         with:
-          version-script: pnpm version-packages
-          publish-script: pnpm release
-          create-github-releases: true
-          push-git-tags: true
+          version: pnpm version-packages
+          publish: pnpm release
+          createGithubReleases: true
