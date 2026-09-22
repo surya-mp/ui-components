@@ -36,14 +36,10 @@ import {
   type DataColumn,
 } from '@sypra-ui/ui';
 import {
-  ApiKeyManager,
+  AccountSettingsPage,
   BillingPage,
-  DangerZone,
   LandingPage,
   LoginPage,
-  ProfilePage,
-  SecurityPage,
-  SettingsLayout,
 } from '@sypra-ui/pages';
 
 type User = { id: string; name: string; email: string; status: string };
@@ -386,16 +382,19 @@ export default function Showcase() {
                     value: 'settings',
                     label: 'Settings',
                     content: (
-                      <SettingsLayout>
-                        <ProfilePage
-                          profile={{
+                      <AccountSettingsPage
+                        profile={{
+                          profile: {
                             name: 'Surya',
                             email: 'surya@example.com',
-                          }}
-                          onSave={() => alert('Save callback')}
-                        />
-                        <SecurityPage
-                          sessions={[
+                          },
+                          onSave: () => alert('Save callback'),
+                          dangerZone: {
+                            onDeleteAccount: () => alert('Delete account'),
+                          },
+                        }}
+                        security={{
+                          sessions: [
                             {
                               id: 'current',
                               device: 'Chrome · macOS',
@@ -408,17 +407,16 @@ export default function Showcase() {
                               location: 'Dallas, TX',
                               lastActive: '2 hours ago',
                             },
-                          ]}
-                          currentSessionId="current"
-                          onRevoke={(id) => alert(`Revoke ${id}`)}
-                          onRevokeAll={() => alert('Revoke all')}
-                          onChangePassword={() => alert('Change password')}
-                          onToggleTwoFactor={(enabled) =>
-                            alert(`2FA ${enabled ? 'enabled' : 'disabled'}`)
-                          }
-                        />
-                        <ApiKeyManager
-                          keys={[
+                          ],
+                          currentSessionId: 'current',
+                          onRevoke: (id) => alert(`Revoke ${id}`),
+                          onRevokeAll: () => alert('Revoke all'),
+                          onChangePassword: () => alert('Change password'),
+                          onToggleTwoFactor: (enabled) =>
+                            alert(`2FA ${enabled ? 'enabled' : 'disabled'}`),
+                        }}
+                        apiKeys={{
+                          keys: [
                             {
                               id: '1',
                               name: 'Production',
@@ -432,14 +430,11 @@ export default function Showcase() {
                               prefix: 'rui_test_',
                               createdAt: 'Sep 10, 2026',
                             },
-                          ]}
-                          onCreate={(key) => alert(`Create ${key.name}`)}
-                          onRevoke={(id) => alert(`Revoke ${id}`)}
-                        />
-                        <DangerZone
-                          onDeleteAccount={() => alert('Delete account')}
-                        />
-                      </SettingsLayout>
+                          ],
+                          onCreate: (key) => alert(`Create ${key.name}`),
+                          onRevoke: (id) => alert(`Revoke ${id}`),
+                        }}
+                      />
                     ),
                   },
                   {
@@ -491,6 +486,10 @@ export default function Showcase() {
                 <LandingPage
                   as="div"
                   brand="Northstar"
+                  header={{
+                    links: [{ label: 'Product', href: '#marketing' }],
+                    actions: <Button size="sm">Sign in</Button>,
+                  }}
                   hero={{
                     title: 'A sharper way to build.',
                     description:

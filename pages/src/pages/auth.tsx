@@ -28,6 +28,34 @@ export type AuthMethods = {
   google?: boolean;
   github?: boolean;
 };
+export function AuthProviderButton({
+  provider,
+  onClick,
+  loading,
+}: {
+  provider: AuthProvider;
+  onClick?: () => void;
+  loading?: boolean;
+}) {
+  const name =
+    provider === 'github'
+      ? 'GitHub'
+      : provider.slice(0, 1).toUpperCase() + provider.slice(1);
+  return (
+    <Button type="button" variant="outline" loading={loading} onClick={onClick}>
+      Continue with {name}
+    </Button>
+  );
+}
+export function AuthDivider({ label = 'OR' }: { label?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 text-xs text-[hsl(var(--rui-muted-foreground))]">
+      <Separator />
+      <span>{label}</span>
+      <Separator />
+    </div>
+  );
+}
 type AuthCallbacks = {
   /** The enabled built-in authentication methods. */
   authMethods?: AuthMethods;
@@ -163,26 +191,14 @@ export function AuthForm({
       )}
       {selectedProviders.length > 0 && (
         <>
-          {usesEmailPassword && (
-            <div className="flex items-center gap-3 text-xs text-[hsl(var(--rui-muted-foreground))]">
-              <Separator />
-              <span>OR</span>
-              <Separator />
-            </div>
-          )}
+          {usesEmailPassword && <AuthDivider />}
           <div className="grid gap-2">
             {selectedProviders.map((provider) => (
-              <Button
+              <AuthProviderButton
                 key={provider}
-                type="button"
-                variant="outline"
+                provider={provider}
                 onClick={() => onProviderLogin?.(provider)}
-              >
-                Continue with{' '}
-                {provider === 'github'
-                  ? 'GitHub'
-                  : provider.slice(0, 1).toUpperCase() + provider.slice(1)}
-              </Button>
+              />
             ))}
           </div>
         </>
@@ -286,8 +302,11 @@ function AuthPage({
   as?: 'main' | 'div';
 }) {
   return (
-    <PageShell as={as} className="grid place-items-center p-4">
-      <Card className="w-full max-w-md">
+    <PageShell
+      as={as}
+      className="grid min-h-screen place-items-center px-4 py-8 sm:p-8"
+    >
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <div>
             <CardTitle>{title}</CardTitle>

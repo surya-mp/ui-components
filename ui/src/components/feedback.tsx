@@ -28,7 +28,7 @@ export function Alert({
         className,
       )}
     >
-      {title && <strong className="block">{title}</strong>}
+      {title && <strong className="mb-1 block">{title}</strong>}
       {children}
     </div>
   );
@@ -60,7 +60,7 @@ export function Toast({
           </p>
         )}
       </div>
-      {action}
+      <div className="shrink-0">{action}</div>
     </div>
   );
 }
@@ -77,7 +77,7 @@ export const EmptyState = ({
 }) => (
   <div
     className={cn(
-      'rounded-[var(--rui-radius)] border border-dashed border-[hsl(var(--rui-border))] p-10 text-center',
+      'rounded-[var(--rui-radius)] border border-dashed border-[hsl(var(--rui-border))] p-6 text-center sm:p-10',
       className,
     )}
   >

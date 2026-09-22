@@ -76,13 +76,39 @@ you do not need:
 <SecurityPage sections={{ password: false, twoFactor: false }} />
 <BillingPage sections={{ paymentMethod: false, invoices: false }} />
 <LandingPage sections={{ header: false, footer: false }} />
-<ProfilePage fields={{ avatar: false, email: false }} />
+<ProfilePage
+  fields={{ avatar: false, email: false }}
+  dangerZone={{ onDeleteAccount: deleteAccount }}
+/>
 <ApiKeyManager actions={{ create: false, revoke: false }} />
 ```
 
-Use exported components such as `SessionManager`, `SubscriptionCard`,
-`PaymentMethodCard`, `InvoiceTable`, `Hero`, `FeatureGrid`, `FAQ`, `CTA`, and
-`Footer` directly when you need a completely custom page layout.
+Pass a `dangerZone` configuration to add it to `ProfilePage`; hide it again
+with `sections={{ dangerZone: false }}` when the application needs a safer
+profile variant.
+
+## Building blocks
+
+Use exported components directly when you need a custom layout:
+
+- Auth: `AuthProviderButton`, `AuthDivider`
+- Account: `ProfileSummary`, `SessionCard`, `ApiKeyCard`
+- Billing: `SubscriptionCard`, `PaymentMethodCard`, `InvoiceTable`,
+  `PricingCard`, `UsageMetric`
+- Marketing: `MarketingHeader`, `Hero`, `FeatureGrid`, `FAQ`, `CTA`,
+  `Footer`
+
+For the common account order, use `AccountSettingsPage` and pass only the
+sections your product needs:
+
+```tsx
+<AccountSettingsPage
+  profile={{ profile, onSave: saveProfile }}
+  security={{ sessions, onRevoke, onRevokeAll }}
+  apiKeys={{ keys, onCreate: createKey, onRevoke: revokeKey }}
+  sections={{ billing: false }}
+/>
+```
 
 Every composite page also accepts `children` as an extension slot for future
 application-specific content:

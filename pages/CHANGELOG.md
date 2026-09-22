@@ -1,5 +1,16 @@
 # @sypra-ui/pages
 
+## 0.5.0
+
+### Minor Changes
+
+- Add configurable account settings, auth, billing, and marketing building blocks alongside responsive layout improvements.
+
+### Patch Changes
+
+- Updated dependencies
+  - @sypra-ui/ui@0.2.0
+
 ## 0.4.0
 
 ### Minor Changes

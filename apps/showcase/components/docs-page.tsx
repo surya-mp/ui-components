@@ -14,6 +14,7 @@ import {
   CardTitle,
   Checkbox,
   Command,
+  ConfirmActionDialog,
   Container,
   ContextMenu,
   CopyButton,
@@ -31,8 +32,8 @@ import {
   EmptyState,
   ErrorState,
   FileUpload,
+  FormField,
   Input,
-  Label,
   LoadingState,
   Pagination,
   PasswordInput,
@@ -94,6 +95,7 @@ const columns: DataColumn<(typeof users)[number]>[] = [
 export default function DocsPage({ section }: { section: string }) {
   const [dark, setDark] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const validSection = sections.some(([value]) => value === section)
     ? section
     : 'foundations';
@@ -143,7 +145,11 @@ export default function DocsPage({ section }: { section: string }) {
         </aside>
         <main className="min-w-0">
           <Container className="py-10">
-            <DocSection section={validSection} />
+            <DocSection
+              section={validSection}
+              confirmOpen={confirmOpen}
+              onConfirmOpenChange={setConfirmOpen}
+            />
           </Container>
         </main>
       </div>
@@ -161,7 +167,15 @@ export default function DocsPage({ section }: { section: string }) {
   );
 }
 
-function DocSection({ section }: { section: string }) {
+function DocSection({
+  section,
+  confirmOpen,
+  onConfirmOpenChange,
+}: {
+  section: string;
+  confirmOpen: boolean;
+  onConfirmOpenChange: (open: boolean) => void;
+}) {
   if (section === 'forms')
     return (
       <Doc
@@ -170,14 +184,16 @@ function DocSection({ section }: { section: string }) {
       >
         <Demo title="Inputs, selection, and file UI">
           <div className="grid max-w-xl gap-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
+            <FormField
+              label="Email"
+              htmlFor="email"
+              description="We only use this to contact you."
+            >
               <Input id="email" type="email" placeholder="you@example.com" />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
+            </FormField>
+            <FormField label="Password" htmlFor="password">
               <PasswordInput id="password" />
-            </div>
+            </FormField>
             <Textarea aria-label="Notes" placeholder="Notes" />
             <Select aria-label="Plan">
               <option>Starter</option>
@@ -190,7 +206,7 @@ function DocSection({ section }: { section: string }) {
             <FileUpload label="Upload a logo" onFiles={() => undefined} />
           </div>
           {snippet(
-            `<Input value={email} onChange={...} />\n<PasswordInput autoComplete="current-password" />`,
+            `<FormField label="Email" htmlFor="email">\n  <Input id="email" value={email} onChange={...} />\n</FormField>`,
           )}
         </Demo>
       </Doc>
@@ -291,7 +307,21 @@ function DocSection({ section }: { section: string }) {
                 <Copy size={15} />
               </Button>
             </Tooltip>
+            <Button
+              variant="destructive"
+              onClick={() => onConfirmOpenChange(true)}
+            >
+              Confirm action
+            </Button>
           </div>
+          <ConfirmActionDialog
+            open={confirmOpen}
+            onOpenChange={onConfirmOpenChange}
+            title="Delete project?"
+            description="This cannot be undone."
+            confirmLabel="Delete project"
+            onConfirm={() => undefined}
+          />
           {snippet(
             `<Dialog open={open} onOpenChange={setOpen}>\n  <DialogContent movable constrainToViewport>…</DialogContent>\n</Dialog>`,
           )}
@@ -436,6 +466,7 @@ function DocSection({ section }: { section: string }) {
             <ProfilePage
               profile={{ name: 'Surya', email: 'surya@example.com' }}
               onSave={() => undefined}
+              dangerZone={{ onDeleteAccount: () => undefined }}
             />
             <ApiKeyManager
               keys={[
@@ -456,7 +487,7 @@ function DocSection({ section }: { section: string }) {
             />
           </div>
           {snippet(
-            `<ProfilePage profile={profile} onSave={saveProfile} />\n<ApiKeyManager keys={keys} onCreate={createKey} onRevoke={revokeKey} />`,
+            `<ProfilePage profile={profile} onSave={saveProfile}\n  dangerZone={{ onDeleteAccount: deleteAccount }} />\n<ApiKeyManager keys={keys} onCreate={createKey} onRevoke={revokeKey} />`,
           )}
         </Demo>
       </Doc>

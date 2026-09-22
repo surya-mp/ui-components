@@ -1,5 +1,6 @@
 import { type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import { cn } from '../lib/utils';
+import { CardDescription, CardTitle } from './display';
 
 type ChildrenProps = { children?: ReactNode; className?: string };
 
@@ -10,7 +11,7 @@ export const PageShell = ({
 }: ComponentPropsWithoutRef<'main'> & { as?: 'main' | 'div' }) => (
   <Component
     className={cn(
-      'min-h-screen bg-[hsl(var(--rui-background))] text-[hsl(var(--rui-foreground))]',
+      'min-h-screen min-w-0 bg-[hsl(var(--rui-background))] text-[hsl(var(--rui-foreground))]',
       className,
     )}
     {...props}
@@ -35,8 +36,10 @@ export const PageHeader = ({
       className,
     )}
   >
-    <div>
-      <Heading className="text-2xl font-bold tracking-tight">{title}</Heading>
+    <div className="min-w-0">
+      <Heading className="text-2xl font-bold tracking-tight sm:text-3xl">
+        {title}
+      </Heading>
       {description && (
         <p className="mt-1 text-sm text-[hsl(var(--rui-muted-foreground))]">
           {description}
@@ -58,10 +61,10 @@ export const Section = ({
   children,
   className,
 }: ChildrenProps & { title?: ReactNode; description?: ReactNode }) => (
-  <section className={cn('space-y-4', className)}>
+  <section className={cn('min-w-0 space-y-4', className)}>
     {title && (
       <div>
-        <h2 className="font-semibold">{title}</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
         {description && (
           <p className="mt-1 text-sm text-[hsl(var(--rui-muted-foreground))]">
             {description}
@@ -93,6 +96,32 @@ export const Stack = ({
     {...props}
   />
 );
+export function SettingRow({
+  title,
+  description,
+  action,
+  className,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
+        className,
+      )}
+    >
+      <div className="min-w-0">
+        <CardTitle>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </div>
+      {action}
+    </div>
+  );
+}
 export const Container = ({
   className,
   ...props

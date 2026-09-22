@@ -183,7 +183,7 @@ export function DialogContent({
         aria-labelledby={titleId}
         tabIndex={-1}
         className={cn(
-          'relative z-10 max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-auto rounded-[calc(var(--rui-radius)+.2rem)] bg-[hsl(var(--rui-card))] p-6 text-[hsl(var(--rui-foreground))] shadow-2xl outline-none',
+          'relative z-10 max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-auto rounded-[calc(var(--rui-radius)+.2rem)] bg-[hsl(var(--rui-card))] p-4 text-[hsl(var(--rui-foreground))] shadow-2xl outline-none sm:p-6',
           drag && 'select-none',
           className,
         )}
@@ -266,6 +266,60 @@ export const AlertDialogTitle = DialogTitle;
 export const AlertDialogDescription = DialogDescription;
 export const AlertDialogFooter = DialogFooter;
 export const AlertDialogClose = DialogClose;
+export function ConfirmActionDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  onConfirm,
+  loading,
+  confirmDisabled,
+  variant = 'destructive',
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: ReactNode;
+  description?: ReactNode;
+  confirmLabel?: ReactNode;
+  cancelLabel?: ReactNode;
+  onConfirm: () => void | Promise<void>;
+  loading?: boolean;
+  confirmDisabled?: boolean;
+  variant?: 'primary' | 'destructive';
+  children?: ReactNode;
+}) {
+  const confirm = async () => {
+    await onConfirm();
+    onOpenChange(false);
+  };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        {children && <DialogBody>{children}</DialogBody>}
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">{cancelLabel}</Button>
+          </DialogClose>
+          <Button
+            variant={variant}
+            loading={loading}
+            disabled={confirmDisabled}
+            onClick={() => void confirm()}
+          >
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 export function Sheet({
   children,
   ...props

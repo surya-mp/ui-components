@@ -21,12 +21,14 @@ export function Navbar({
     <nav
       aria-label={label}
       className={cn(
-        'flex min-h-14 items-center justify-between border-b border-[hsl(var(--rui-border))] px-4',
+        'flex min-h-14 min-w-0 items-center justify-between gap-3 border-b border-[hsl(var(--rui-border))] px-4',
         className,
       )}
     >
       {brand}
-      <div className="flex items-center gap-2">{children}</div>
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        {children}
+      </div>
     </nav>
   );
 }
@@ -127,7 +129,7 @@ export function Tabs({
     <div className={className}>
       <div
         role="tablist"
-        className="flex gap-1 border-b border-[hsl(var(--rui-border))]"
+        className="flex gap-1 overflow-x-auto border-b border-[hsl(var(--rui-border))]"
       >
         {tabs.map((tab) => (
           <button
@@ -137,7 +139,7 @@ export function Tabs({
             disabled={tab.disabled}
             onClick={() => choose(tab.value)}
             className={cn(
-              'rui-focus border-b-2 px-3 py-2 text-sm font-medium transition',
+              'rui-focus shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition',
               tab.value === selected
                 ? 'border-[hsl(var(--rui-primary))]'
                 : 'border-transparent text-[hsl(var(--rui-muted-foreground))]',
@@ -250,7 +252,7 @@ export function Pagination({
       {onPageSizeChange && (
         <Select
           aria-label="Rows per page"
-          className="ml-auto w-auto"
+          className="sm:ml-auto w-auto"
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
         >

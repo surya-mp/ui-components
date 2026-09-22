@@ -82,3 +82,10 @@ import { Button, Card } from '@sypra-ui/ui';
 
 The package is ESM-only. Import `@sypra-ui/ui/styles.css` exactly once per
 application.
+
+## Composition helpers
+
+`FormField` keeps a visible label, optional helper text, and field error
+together. `SettingRow` provides an aligned title, description, and trailing
+action for settings cards. Use `ConfirmActionDialog` for destructive actions
+that need an explicit confirmation.

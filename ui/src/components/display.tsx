@@ -9,7 +9,7 @@ export function Card({
   return (
     <section
       className={cn(
-        'rounded-[calc(var(--rui-radius)+.15rem)] border border-[hsl(var(--rui-border))] bg-[hsl(var(--rui-card))] p-5 shadow-sm',
+        'min-w-0 rounded-[calc(var(--rui-radius)+.15rem)] border border-[hsl(var(--rui-border))] bg-[hsl(var(--rui-card))] p-5 shadow-sm transition-shadow',
         className,
       )}
       {...props}
@@ -22,7 +22,10 @@ export function CardHeader({
 }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={cn('mb-4 flex items-start justify-between gap-3', className)}
+      className={cn(
+        'mb-4 flex min-w-0 items-start justify-between gap-3 [&>:first-child]:min-w-0',
+        className,
+      )}
       {...props}
     />
   );
@@ -31,9 +34,7 @@ export function CardTitle({
   className,
   ...props
 }: ComponentPropsWithoutRef<'h3'>) {
-  return (
-    <h3 className={cn('font-semibold leading-none', className)} {...props} />
-  );
+  return <h3 className={cn('font-semibold leading-5', className)} {...props} />;
 }
 export function CardDescription({
   className,
@@ -42,7 +43,7 @@ export function CardDescription({
   return (
     <p
       className={cn(
-        'mt-1 text-sm text-[hsl(var(--rui-muted-foreground))]',
+        'mt-1 break-words text-sm leading-5 text-[hsl(var(--rui-muted-foreground))]',
         className,
       )}
       {...props}

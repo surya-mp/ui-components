@@ -5,11 +5,14 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   Alert,
   Button,
+  ConfirmActionDialog,
   DataTable,
   Dialog,
   DialogContent,
   DialogTitle,
   DialogTrigger,
+  FormField,
+  Input,
   Popover,
   Pagination,
   Tooltip,
@@ -39,6 +42,36 @@ describe('DataTable', () => {
 });
 
 describe('interactive controls', () => {
+  it('associates form labels and exposes field errors', () => {
+    render(
+      <FormField label="Email" htmlFor="field-email" error="Enter an email">
+        <Input id="field-email" />
+      </FormField>,
+    );
+
+    expect(screen.getByLabelText('Email')).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter an email');
+  });
+
+  it('confirms destructive actions through a reusable dialog', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.fn();
+    const change = vi.fn();
+    render(
+      <ConfirmActionDialog
+        open
+        onOpenChange={change}
+        title="Delete account"
+        confirmLabel="Delete"
+        onConfirm={confirm}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(change).toHaveBeenCalledWith(false);
+  });
+
   it('closes a dialog with Escape and restores trigger focus', async () => {
     const user = userEvent.setup();
     render(

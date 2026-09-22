@@ -2,12 +2,21 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  AccountSettingsPage,
+  ApiKeyCard,
+  AuthProviderButton,
   BillingPage,
   DangerZone,
   LandingPage,
   LoginPage,
+  MarketingHeader,
+  ProfilePage,
+  ProfileSummary,
+  PricingCard,
   PricingTable,
   SecurityPage,
+  SessionCard,
+  UsageMetric,
 } from './index';
 
 describe('page compositions', () => {
@@ -79,6 +88,19 @@ describe('page compositions', () => {
     expect(onDeleteAccount).toHaveBeenCalledOnce();
   });
 
+  it('adds the profile danger zone only when selected', () => {
+    const props = {
+      profile: { name: 'Avery', email: 'avery@example.com' },
+      onSave: () => undefined,
+      dangerZone: { onDeleteAccount: () => undefined },
+    };
+    const { rerender } = render(<ProfilePage {...props} />);
+
+    expect(screen.getByText('Danger zone')).toBeInTheDocument();
+    rerender(<ProfilePage {...props} sections={{ dangerZone: false }} />);
+    expect(screen.queryByText('Danger zone')).not.toBeInTheDocument();
+  });
+
   it('reports the selected pricing plan to the application', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
@@ -97,6 +119,68 @@ describe('page compositions', () => {
 
     await user.click(screen.getByRole('button', { name: 'Choose Pro' }));
     expect(onSelect).toHaveBeenCalledWith('Pro');
+  });
+
+  it('exposes reusable auth, account, billing, and marketing blocks', async () => {
+    const user = userEvent.setup();
+    const providerLogin = vi.fn();
+    const selectPlan = vi.fn();
+    render(
+      <>
+        <AuthProviderButton provider="github" onClick={providerLogin} />
+        <ProfileSummary
+          profile={{ name: 'Avery', email: 'avery@example.com' }}
+        />
+        <SessionCard
+          session={{ id: '1', device: 'Chrome', lastActive: 'Active now' }}
+          current
+        />
+        <ApiKeyCard
+          apiKey={{
+            id: 'key_1',
+            name: 'Production',
+            prefix: 'sypra_live_',
+            createdAt: 'Today',
+          }}
+        />
+        <UsageMetric label="Requests" value="10k" />
+        <PricingCard
+          plan={{ name: 'Pro', price: '$19', features: ['Unlimited'] }}
+          onSelect={selectPlan}
+        />
+        <MarketingHeader
+          brand="Sypra"
+          links={[{ label: 'Docs', href: '/docs' }]}
+        />
+      </>,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Continue with GitHub' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Choose Pro' }));
+    expect(providerLogin).toHaveBeenCalledOnce();
+    expect(selectPlan).toHaveBeenCalledWith('Pro');
+    expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute(
+      'href',
+      '/docs',
+    );
+    expect(screen.getByText('10k')).toBeVisible();
+  });
+
+  it('composes only the account settings sections supplied by the consumer', () => {
+    render(
+      <AccountSettingsPage
+        profile={{
+          profile: { name: 'Avery', email: 'avery@example.com' },
+          onSave: () => undefined,
+        }}
+        sections={{ security: false, apiKeys: false, billing: false }}
+      />,
+    );
+
+    expect(screen.getByText('Profile')).toBeInTheDocument();
+    expect(screen.queryByText('Security')).not.toBeInTheDocument();
   });
 
   it('renders only selected composition sections', () => {

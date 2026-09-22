@@ -33,6 +33,20 @@ export type Invoice = {
   status: string;
   href?: string;
 };
+export function UsageMetric({
+  label,
+  value,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+}) {
+  return (
+    <div className="rounded bg-[hsl(var(--rui-muted))] p-3">
+      <strong className="block">{value}</strong>
+      <span className="text-[hsl(var(--rui-muted-foreground))]">{label}</span>
+    </div>
+  );
+}
 export function SubscriptionCard({
   subscription,
   onChangePlan,
@@ -73,15 +87,11 @@ export function SubscriptionCard({
       {subscription.usage?.length ? (
         <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
           {subscription.usage.map((item) => (
-            <div
+            <UsageMetric
               key={item.label}
-              className="rounded bg-[hsl(var(--rui-muted))] p-3"
-            >
-              <strong className="block">{item.value}</strong>
-              <span className="text-[hsl(var(--rui-muted-foreground))]">
-                {item.label}
-              </span>
-            </div>
+              label={item.label}
+              value={item.value}
+            />
           ))}
         </div>
       ) : null}
@@ -165,46 +175,57 @@ export function InvoiceTable({
     />
   );
 }
+export type PricingPlan = {
+  name: string;
+  price: string;
+  description?: string;
+  features: string[];
+  highlighted?: boolean;
+};
+export function PricingCard({
+  plan,
+  onSelect,
+}: {
+  plan: PricingPlan;
+  onSelect: (plan: string) => void;
+}) {
+  return (
+    <Card
+      className={
+        plan.highlighted ? 'border-[hsl(var(--rui-primary))]' : undefined
+      }
+    >
+      <CardTitle>{plan.name}</CardTitle>
+      <p className="mt-3 text-2xl font-bold">{plan.price}</p>
+      {plan.description && (
+        <CardDescription>{plan.description}</CardDescription>
+      )}
+      <ul className="my-5 space-y-2 text-sm">
+        {plan.features.map((feature) => (
+          <li key={feature}>✓ {feature}</li>
+        ))}
+      </ul>
+      <Button
+        className="w-full"
+        variant={plan.highlighted ? 'primary' : 'outline'}
+        onClick={() => onSelect(plan.name)}
+      >
+        Choose {plan.name}
+      </Button>
+    </Card>
+  );
+}
 export function PricingTable({
   plans,
   onSelect,
 }: {
-  plans: Array<{
-    name: string;
-    price: string;
-    description?: string;
-    features: string[];
-    highlighted?: boolean;
-  }>;
+  plans: PricingPlan[];
   onSelect: (plan: string) => void;
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {plans.map((plan) => (
-        <Card
-          key={plan.name}
-          className={
-            plan.highlighted ? 'border-[hsl(var(--rui-primary))]' : undefined
-          }
-        >
-          <CardTitle>{plan.name}</CardTitle>
-          <p className="mt-3 text-2xl font-bold">{plan.price}</p>
-          {plan.description && (
-            <CardDescription>{plan.description}</CardDescription>
-          )}
-          <ul className="my-5 space-y-2 text-sm">
-            {plan.features.map((feature) => (
-              <li key={feature}>✓ {feature}</li>
-            ))}
-          </ul>
-          <Button
-            className="w-full"
-            variant={plan.highlighted ? 'primary' : 'outline'}
-            onClick={() => onSelect(plan.name)}
-          >
-            Choose {plan.name}
-          </Button>
-        </Card>
+        <PricingCard key={plan.name} plan={plan} onSelect={onSelect} />
       ))}
     </div>
   );

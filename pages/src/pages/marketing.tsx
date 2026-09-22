@@ -10,6 +10,43 @@ import {
   PageShell,
 } from '@sypra-ui/ui';
 
+export type MarketingLink = { label: string; href: string };
+export function MarketingHeader({
+  brand,
+  links,
+  actions,
+}: {
+  brand: ReactNode;
+  links?: MarketingLink[];
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="flex min-h-16 flex-wrap items-center justify-between gap-3">
+      <strong>{brand}</strong>
+      {(links?.length || actions) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {links?.length ? (
+            <nav
+              aria-label="Main navigation"
+              className="flex flex-wrap gap-3 text-sm"
+            >
+              {links.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="rui-focus text-[hsl(var(--rui-muted-foreground))] hover:text-[hsl(var(--rui-foreground))]"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          ) : null}
+          {actions}
+        </div>
+      )}
+    </header>
+  );
+}
 export function Hero({
   eyebrow,
   title,
@@ -24,7 +61,7 @@ export function Hero({
   secondaryAction?: ReactNode;
 }) {
   return (
-    <section className="py-20 text-center sm:py-28">
+    <section className="py-16 text-center sm:py-24">
       {eyebrow && <Badge>{eyebrow}</Badge>}
       <h1 className="mx-auto mt-5 max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
         {title}
@@ -47,7 +84,7 @@ export function FeatureGrid({
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {features.map((feature) => (
-        <Card key={feature.title}>
+        <Card key={feature.title} className="h-full">
           {feature.icon && (
             <div className="mb-3 text-[hsl(var(--rui-primary))]">
               {feature.icon}
@@ -86,7 +123,7 @@ export function CTA({
   action: ReactNode;
 }) {
   return (
-    <section className="rounded-[calc(var(--rui-radius)+.2rem)] bg-[hsl(var(--rui-primary))] px-6 py-14 text-center text-[hsl(var(--rui-primary-foreground))]">
+    <section className="rounded-[calc(var(--rui-radius)+.2rem)] bg-[hsl(var(--rui-primary))] px-5 py-10 text-center text-[hsl(var(--rui-primary-foreground))] sm:px-8 sm:py-14">
       <h2 className="text-3xl font-bold">{title}</h2>
       {description && <p className="mt-3 opacity-85">{description}</p>}
       <div className="mt-6">{action}</div>
@@ -104,7 +141,7 @@ export function Footer({
     <footer className="mt-16 border-t border-[hsl(var(--rui-border))] py-8 text-sm text-[hsl(var(--rui-muted-foreground))]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <strong className="text-[hsl(var(--rui-foreground))]">{brand}</strong>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
           {links?.map((link) => (
             <a
               key={link.href}
@@ -121,6 +158,7 @@ export function Footer({
 }
 export function LandingPage({
   brand,
+  header,
   hero,
   features,
   children,
@@ -128,6 +166,10 @@ export function LandingPage({
   sections,
 }: {
   brand: ReactNode;
+  header?: {
+    links?: MarketingLink[];
+    actions?: ReactNode;
+  };
   hero?: {
     title: ReactNode;
     description: ReactNode;
@@ -155,9 +197,7 @@ export function LandingPage({
     <PageShell as={as}>
       <Container>
         {visibleSections.header && (
-          <header className="flex h-16 items-center justify-between">
-            <strong>{brand}</strong>
-          </header>
+          <MarketingHeader brand={brand} {...header} />
         )}
         {visibleSections.hero && hero && <Hero {...hero} />}
         {visibleSections.features && features && (

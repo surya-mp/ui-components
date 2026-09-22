@@ -151,7 +151,7 @@ export function PasswordInput({
       />
       <button
         type="button"
-        className="rui-focus absolute right-2 top-2 text-xs text-[hsl(var(--rui-muted-foreground))]"
+        className="rui-focus absolute right-2 top-2 rounded px-1 text-xs text-[hsl(var(--rui-muted-foreground))]"
         onClick={() => setVisible(!visible)}
       >
         {visible ? 'Hide' : 'Show'}
@@ -183,7 +183,7 @@ export function FileUpload({
       />
       <Label
         htmlFor={id}
-        className="cursor-pointer rounded-[var(--rui-radius)] border border-dashed border-[hsl(var(--rui-border))] p-6 text-center text-sm text-[hsl(var(--rui-muted-foreground))]"
+        className="flex w-full cursor-pointer items-center justify-center rounded-[var(--rui-radius)] border border-dashed border-[hsl(var(--rui-border))] p-6 text-center text-sm text-[hsl(var(--rui-muted-foreground))]"
       >
         {label}
       </Label>
