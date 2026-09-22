@@ -1,0 +1,70 @@
+:root {
+  --rui-background: 0 0% 100%;
+  --rui-foreground: 222 47% 11%;
+  --rui-card: 0 0% 100%;
+  --rui-muted: 210 40% 96%;
+  --rui-muted-foreground: 215 16% 47%;
+  --rui-border: 214 32% 91%;
+  --rui-input: 214 32% 91%;
+  --rui-primary: 221 83% 45%;
+  --rui-primary-foreground: 210 40% 98%;
+  --rui-secondary: 210 40% 96%;
+  --rui-secondary-foreground: 222 47% 11%;
+  --rui-accent: 210 40% 96%;
+  --rui-accent-foreground: 222 47% 11%;
+  --rui-destructive: 0 72% 40%;
+  --rui-destructive-foreground: 210 40% 98%;
+  --rui-destructive-background: 0 86% 97%;
+  --rui-destructive-text: 0 72% 30%;
+  --rui-success: 142 71% 35%;
+  --rui-success-background: 138 76% 97%;
+  --rui-success-foreground: 142 72% 22%;
+  --rui-warning: 38 92% 40%;
+  --rui-warning-background: 48 96% 89%;
+  --rui-warning-foreground: 32 81% 29%;
+  --rui-overlay: 0 0% 0%;
+  --rui-tooltip: 222 47% 11%;
+  --rui-tooltip-foreground: 210 40% 98%;
+  --rui-switch-thumb: 0 0% 100%;
+  --rui-ring: 221 83% 53%;
+  --rui-radius: 0.65rem;
+}
+.rui-dark,
+[data-theme='dark'] {
+  --rui-background: 222 47% 8%;
+  --rui-foreground: 210 40% 98%;
+  --rui-card: 222 47% 11%;
+  --rui-muted: 217 33% 17%;
+  --rui-muted-foreground: 215 20% 65%;
+  --rui-border: 217 33% 20%;
+  --rui-input: 217 33% 20%;
+  --rui-primary: 217 91% 60%;
+  --rui-primary-foreground: 222 47% 8%;
+  --rui-secondary: 217 33% 17%;
+  --rui-secondary-foreground: 210 40% 98%;
+  --rui-accent: 217 33% 17%;
+  --rui-accent-foreground: 210 40% 98%;
+  --rui-destructive: 0 63% 45%;
+  --rui-destructive-foreground: 210 40% 98%;
+  --rui-destructive-background: 0 52% 16%;
+  --rui-destructive-text: 0 93% 90%;
+  --rui-success: 142 71% 45%;
+  --rui-success-background: 142 45% 14%;
+  --rui-success-foreground: 142 70% 82%;
+  --rui-warning: 38 92% 50%;
+  --rui-warning-background: 36 45% 16%;
+  --rui-warning-foreground: 45 93% 81%;
+  --rui-overlay: 0 0% 0%;
+  --rui-tooltip: 210 40% 98%;
+  --rui-tooltip-foreground: 222 47% 11%;
+  --rui-switch-thumb: 210 40% 98%;
+  --rui-ring: 224 76% 58%;
+}
+.rui-root {
+  color: hsl(var(--rui-foreground));
+  background: hsl(var(--rui-background));
+}
+.rui-focus:focus-visible {
+  outline: 2px solid hsl(var(--rui-ring));
+  outline-offset: 2px;
+}

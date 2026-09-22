@@ -1,0 +1,63 @@
+{
+  "name": "@sypra-ui/pages",
+  "version": "0.1.0",
+  "description": "Data-and-callback driven React page compositions.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/surya-mp/ui-components.git",
+    "directory": "pages"
+  },
+  "homepage": "https://github.com/surya-mp/ui-components#readme",
+  "bugs": "https://github.com/surya-mp/ui-components/issues",
+  "keywords": [
+    "auth",
+    "billing",
+    "pages",
+    "react",
+    "saas",
+    "tailwindcss",
+    "typescript"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.tsx --format esm --dts --sourcemap --external react --external react-dom --external @sypra-ui/ui --clean",
+    "prepack": "pnpm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src && prettier --check src"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "@sypra-ui/ui": "^0.1.0"
+  },
+  "devDependencies": {
+    "@sypra-ui/ui": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "jsdom": "^25.0.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "sypra-ui",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "pnpm --filter @sypra-ui/showcase dev",
+    "test": "turbo run test",
+    "test:e2e": "pnpm build && pnpm --filter @sypra-ui/showcase test:e2e",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write .",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.11",
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript-eslint": "^8.19.1",
+    "typescript": "^5.7.2"
+  }
+}

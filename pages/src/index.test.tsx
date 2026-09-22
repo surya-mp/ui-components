@@ -1,0 +1,55 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { DangerZone, LoginPage, PricingTable } from './index';
+
+describe('page compositions', () => {
+  it('submits login values without owning authentication', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<LoginPage as="div" onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Email'), 'ava@example.com');
+    await user.type(screen.getByLabelText('Password'), 'secret');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: 'ava@example.com',
+      password: 'secret',
+      name: '',
+    });
+  });
+
+  it('requires confirmation before destructive account actions', async () => {
+    const user = userEvent.setup();
+    const onDeleteAccount = vi.fn();
+    render(<DangerZone onDeleteAccount={onDeleteAccount} />);
+
+    const button = screen.getByRole('button', { name: 'Delete account' });
+    expect(button).toBeDisabled();
+    await user.type(screen.getByLabelText(/Type DELETE/), 'DELETE');
+    await user.click(button);
+
+    expect(onDeleteAccount).toHaveBeenCalledOnce();
+  });
+
+  it('reports the selected pricing plan to the application', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      <PricingTable
+        plans={[
+          {
+            name: 'Pro',
+            price: '$19',
+            features: ['Unlimited projects'],
+          },
+        ]}
+        onSelect={onSelect}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Choose Pro' }));
+    expect(onSelect).toHaveBeenCalledWith('Pro');
+  });
+});

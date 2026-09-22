@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+dist
+.next
+coverage
+.playwright
+playwright-report
+test-results
+.turbo
+*.tsbuildinfo
