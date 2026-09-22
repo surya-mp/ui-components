@@ -1,5 +1,11 @@
 # @sypra-ui/pages
 
+## 0.4.0
+
+### Minor Changes
+
+- 1a3d6a8: Add `authMethods` and optional page sections for configurable auth, settings, billing, and marketing pages.
+
 ## 0.3.0
 
 ### Minor Changes
