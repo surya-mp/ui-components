@@ -1,5 +1,12 @@
 # @sypra-ui/showcase
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [3a05dcc]
+  - @sypra-ui/pages@0.3.0
+
 ## 0.1.1
 
 ### Patch Changes
