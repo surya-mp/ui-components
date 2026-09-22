@@ -31,10 +31,10 @@ payments.
 
 ## Authentication methods
 
-`LoginPage`, `SignupPage`, and `AuthModal` can show email/password and any
-selection of provider buttons. Email/password is enabled by default; set
-`emailPassword={false}` for provider-only sign-in. The library calls your
-handler and never owns OAuth client IDs, redirects, or callback exchanges.
+`LoginPage`, `SignupPage`, `AuthModal`, and the unwrapped `AuthForm` accept a
+`loginOptions` list. Select any combination of `email-password`, `google`,
+and `github`. The library calls your handler and never owns OAuth client IDs,
+redirects, or callback exchanges.
 
 ```tsx
 const startOAuth = (provider: string) => {
@@ -45,16 +45,21 @@ const startOAuth = (provider: string) => {
 <LoginPage onSubmit={signInWithPassword} />;
 
 // Google only (or use 'github')
-<LoginPage
-  emailPassword={false}
-  providers={['google']}
-  onProviderLogin={startOAuth}
-/>;
+<LoginPage loginOptions={['google']} onProviderLogin={startOAuth} />;
 
 // Email/password, Google, and GitHub
 <LoginPage
-  providers={['google', 'github']}
+  loginOptions={['email-password', 'google', 'github']}
   onProviderLogin={startOAuth}
   onSubmit={signInWithPassword}
 />;
+
+// Your own page shell
+<section className="my-auth-page">
+  <AuthForm
+    mode="login"
+    loginOptions={['google', 'github']}
+    onProviderLogin={startOAuth}
+  />
+</section>;
 ```

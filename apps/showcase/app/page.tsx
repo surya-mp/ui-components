@@ -374,12 +374,10 @@ export default function Showcase() {
                       <div className="max-w-md">
                         <LoginPage
                           as="div"
-                          onSubmit={(values) =>
-                            alert(`Login submitted for ${values.email}`)
+                          loginOptions={['google', 'github']}
+                          onProviderLogin={(provider) =>
+                            alert(`Continue with ${provider}`)
                           }
-                          providers={['google', 'github']}
-                          onSignup={() => alert('Route to signup')}
-                          onForgotPassword={() => alert('Route to reset')}
                         />
                       </div>
                     ),

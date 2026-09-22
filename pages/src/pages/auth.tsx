@@ -21,8 +21,11 @@ import {
 } from '@sypra-ui/ui';
 
 export type AuthProvider = 'google' | 'github' | string;
+export type LoginOption = 'email-password' | AuthProvider;
 export type AuthValues = { email: string; password: string; name?: string };
 type AuthCallbacks = {
+  /** The sign-in methods to render, such as ['google', 'github']. */
+  loginOptions?: LoginOption[];
   providers?: AuthProvider[];
   loading?: boolean;
   error?: ReactNode;
@@ -31,20 +34,16 @@ type AuthCallbacks = {
   onSignup?: () => void;
   onLogin?: () => void;
 };
-type AuthMethods =
-  | {
-      /** Render the email/password form. Disable for provider-only sign-in. */
-      emailPassword?: true;
-      onSubmit: (values: AuthValues) => void | Promise<void>;
-    }
-  | {
-      emailPassword: false;
-      onSubmit?: (values: AuthValues) => void | Promise<void>;
-    };
+type AuthMethods = {
+  /** Legacy alternative to omitting 'email-password' from loginOptions. */
+  emailPassword?: boolean;
+  onSubmit?: (values: AuthValues) => void | Promise<void>;
+};
 type AuthProps = AuthCallbacks & AuthMethods;
 export function AuthForm({
   mode,
   onSubmit,
+  loginOptions,
   emailPassword = true,
   providers = [],
   loading,
@@ -66,6 +65,14 @@ export function AuthForm({
     void onSubmit?.(values);
   };
   const isForgot = mode === 'forgot';
+  const options = loginOptions ?? [
+    ...(emailPassword ? ['email-password'] : []),
+    ...providers,
+  ];
+  const usesEmailPassword = options.includes('email-password');
+  const selectedProviders = options.filter(
+    (option) => option !== 'email-password',
+  );
   return (
     <form className="space-y-4" onSubmit={submit}>
       {error && (
@@ -73,7 +80,7 @@ export function AuthForm({
           {error}
         </Alert>
       )}
-      {emailPassword && (
+      {usesEmailPassword && (
         <>
           {mode === 'signup' && (
             <div>
@@ -138,9 +145,9 @@ export function AuthForm({
           </Button>
         </>
       )}
-      {providers.length > 0 && (
+      {selectedProviders.length > 0 && (
         <>
-          {emailPassword && (
+          {usesEmailPassword && (
             <div className="flex items-center gap-3 text-xs text-[hsl(var(--rui-muted-foreground))]">
               <Separator />
               <span>OR</span>
@@ -148,7 +155,7 @@ export function AuthForm({
             </div>
           )}
           <div className="grid gap-2">
-            {providers.map((provider) => (
+            {selectedProviders.map((provider) => (
               <Button
                 key={provider}
                 type="button"
@@ -164,7 +171,7 @@ export function AuthForm({
           </div>
         </>
       )}
-      {emailPassword && (
+      {usesEmailPassword && (
         <p className="text-center text-sm text-[hsl(var(--rui-muted-foreground))]">
           {mode === 'login' ? (
             <>

@@ -27,8 +27,7 @@ describe('page compositions', () => {
     const { rerender } = render(
       <LoginPage
         as="div"
-        emailPassword={false}
-        providers={['google', 'github']}
+        loginOptions={['google', 'github']}
         onProviderLogin={onProviderLogin}
       />,
     );
@@ -43,7 +42,7 @@ describe('page compositions', () => {
     rerender(
       <LoginPage
         as="div"
-        providers={['google', 'github']}
+        loginOptions={['email-password', 'google', 'github']}
         onProviderLogin={onProviderLogin}
         onSubmit={onSubmit}
       />,

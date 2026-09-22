@@ -429,8 +429,8 @@ function DocSection({ section }: { section: string }) {
             <div className="max-w-md">
               <LoginPage
                 as="div"
-                providers={['google', 'github']}
-                onSubmit={() => undefined}
+                loginOptions={['google', 'github']}
+                onProviderLogin={() => undefined}
               />
             </div>
             <ProfilePage
