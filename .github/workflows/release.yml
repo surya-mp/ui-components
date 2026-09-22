@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-main
   cancel-in-progress: false
 
 permissions:
@@ -27,8 +27,13 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build
-      - id: version
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter @sypra-ui/showcase exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - name: Version packages
+        id: version
         run: |
           pnpm version-packages
           if git diff --quiet; then
@@ -39,12 +44,13 @@ jobs:
       - name: Commit version updates
         if: steps.version.outputs.changed == 'true'
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m 'Version Packages'
+          git commit -m "Version Packages"
           git push
-      - name: Publish packages and tags
+      - name: Publish packages
+        if: steps.version.outputs.changed == 'true'
         run: |
           pnpm release
           git push --follow-tags
