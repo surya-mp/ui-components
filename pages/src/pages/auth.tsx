@@ -23,7 +23,14 @@ import {
 export type AuthProvider = 'google' | 'github' | string;
 export type LoginOption = 'email-password' | AuthProvider;
 export type AuthValues = { email: string; password: string; name?: string };
+export type AuthMethods = {
+  emailPassword?: boolean;
+  google?: boolean;
+  github?: boolean;
+};
 type AuthCallbacks = {
+  /** The enabled built-in authentication methods. */
+  authMethods?: AuthMethods;
   /** The sign-in methods to render, such as ['google', 'github']. */
   loginOptions?: LoginOption[];
   providers?: AuthProvider[];
@@ -33,16 +40,18 @@ type AuthCallbacks = {
   onForgotPassword?: () => void;
   onSignup?: () => void;
   onLogin?: () => void;
+  children?: ReactNode;
 };
-type AuthMethods = {
+type AuthBehavior = {
   /** Legacy alternative to omitting 'email-password' from loginOptions. */
   emailPassword?: boolean;
   onSubmit?: (values: AuthValues) => void | Promise<void>;
 };
-type AuthProps = AuthCallbacks & AuthMethods;
+type AuthProps = AuthCallbacks & AuthBehavior;
 export function AuthForm({
   mode,
   onSubmit,
+  authMethods,
   loginOptions,
   emailPassword = true,
   providers = [],
@@ -52,6 +61,7 @@ export function AuthForm({
   onForgotPassword,
   onSignup,
   onLogin,
+  children,
 }: AuthProps & {
   mode: 'login' | 'signup' | 'forgot';
 }) {
@@ -65,10 +75,16 @@ export function AuthForm({
     void onSubmit?.(values);
   };
   const isForgot = mode === 'forgot';
-  const options = loginOptions ?? [
-    ...(emailPassword ? ['email-password'] : []),
-    ...providers,
-  ];
+  const options = authMethods
+    ? [
+        ...(authMethods.emailPassword ? ['email-password'] : []),
+        ...(authMethods.google ? ['google'] : []),
+        ...(authMethods.github ? ['github'] : []),
+      ]
+    : (loginOptions ?? [
+        ...(emailPassword ? ['email-password'] : []),
+        ...providers,
+      ]);
   const usesEmailPassword = options.includes('email-password');
   const selectedProviders = options.filter(
     (option) => option !== 'email-password',
@@ -206,6 +222,7 @@ export function AuthForm({
           )}
         </p>
       )}
+      {children}
     </form>
   );
 }

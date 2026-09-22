@@ -31,10 +31,10 @@ payments.
 
 ## Authentication methods
 
-`LoginPage`, `SignupPage`, `AuthModal`, and the unwrapped `AuthForm` accept a
-`loginOptions` list. Select any combination of `email-password`, `google`,
-and `github`. The library calls your handler and never owns OAuth client IDs,
-redirects, or callback exchanges.
+`LoginPage`, `SignupPage`, `AuthModal`, and the unwrapped `AuthForm` accept
+`authMethods`. Enable any combination of email/password, Google, and GitHub.
+The library calls your handler and never owns OAuth client IDs, redirects, or
+callback exchanges.
 
 ```tsx
 const startOAuth = (provider: string) => {
@@ -42,14 +42,17 @@ const startOAuth = (provider: string) => {
 };
 
 // Email/password only
-<LoginPage onSubmit={signInWithPassword} />;
+<LoginPage
+  authMethods={{ emailPassword: true }}
+  onSubmit={signInWithPassword}
+/>;
 
 // Google only (or use 'github')
-<LoginPage loginOptions={['google']} onProviderLogin={startOAuth} />;
+<LoginPage authMethods={{ google: true }} onProviderLogin={startOAuth} />;
 
 // Email/password, Google, and GitHub
 <LoginPage
-  loginOptions={['email-password', 'google', 'github']}
+  authMethods={{ emailPassword: true, google: true, github: true }}
   onProviderLogin={startOAuth}
   onSubmit={signInWithPassword}
 />;
@@ -58,8 +61,34 @@ const startOAuth = (provider: string) => {
 <section className="my-auth-page">
   <AuthForm
     mode="login"
-    loginOptions={['google', 'github']}
+    authMethods={{ google: true, github: true }}
     onProviderLogin={startOAuth}
   />
 </section>;
+```
+
+## Page sections
+
+Composite pages expose their smaller building blocks and let you hide sections
+you do not need:
+
+```tsx
+<SecurityPage sections={{ password: false, twoFactor: false }} />
+<BillingPage sections={{ paymentMethod: false, invoices: false }} />
+<LandingPage sections={{ header: false, footer: false }} />
+<ProfilePage fields={{ avatar: false, email: false }} />
+<ApiKeyManager actions={{ create: false, revoke: false }} />
+```
+
+Use exported components such as `SessionManager`, `SubscriptionCard`,
+`PaymentMethodCard`, `InvoiceTable`, `Hero`, `FeatureGrid`, `FAQ`, `CTA`, and
+`Footer` directly when you need a completely custom page layout.
+
+Every composite page also accepts `children` as an extension slot for future
+application-specific content:
+
+```tsx
+<BillingPage sections={{ paymentMethod: false }} invoices={invoices}>
+  <UsageChart />
+</BillingPage>
 ```

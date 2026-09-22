@@ -1,13 +1,26 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { DangerZone, LoginPage, PricingTable } from './index';
+import {
+  BillingPage,
+  DangerZone,
+  LandingPage,
+  LoginPage,
+  PricingTable,
+  SecurityPage,
+} from './index';
 
 describe('page compositions', () => {
   it('submits login values without owning authentication', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
-    render(<LoginPage as="div" onSubmit={onSubmit} />);
+    render(
+      <LoginPage
+        as="div"
+        authMethods={{ emailPassword: true }}
+        onSubmit={onSubmit}
+      />,
+    );
 
     await user.type(screen.getByLabelText('Email'), 'ava@example.com');
     await user.type(screen.getByLabelText('Password'), 'secret');
@@ -27,7 +40,7 @@ describe('page compositions', () => {
     const { rerender } = render(
       <LoginPage
         as="div"
-        loginOptions={['google', 'github']}
+        authMethods={{ google: true, github: true }}
         onProviderLogin={onProviderLogin}
       />,
     );
@@ -42,7 +55,7 @@ describe('page compositions', () => {
     rerender(
       <LoginPage
         as="div"
-        loginOptions={['email-password', 'google', 'github']}
+        authMethods={{ emailPassword: true, google: true, github: true }}
         onProviderLogin={onProviderLogin}
         onSubmit={onSubmit}
       />,
@@ -84,5 +97,39 @@ describe('page compositions', () => {
 
     await user.click(screen.getByRole('button', { name: 'Choose Pro' }));
     expect(onSelect).toHaveBeenCalledWith('Pro');
+  });
+
+  it('renders only selected composition sections', () => {
+    render(
+      <>
+        <SecurityPage
+          sections={{ password: false, twoFactor: false }}
+          sessions={[]}
+          onRevoke={() => undefined}
+          onRevokeAll={() => undefined}
+        />
+        <BillingPage sections={{ subscription: false, paymentMethod: false }}>
+          Custom billing content
+        </BillingPage>
+        <LandingPage
+          as="div"
+          brand="Sypra"
+          sections={{
+            header: false,
+            hero: false,
+            features: false,
+            footer: false,
+          }}
+        >
+          Custom content
+        </LandingPage>
+      </>,
+    );
+
+    expect(screen.queryByText('Password')).not.toBeInTheDocument();
+    expect(screen.queryByText('Payment method')).not.toBeInTheDocument();
+    expect(screen.getByText('Invoices')).toBeInTheDocument();
+    expect(screen.getByText('Custom billing content')).toBeInTheDocument();
+    expect(screen.getByText('Custom content')).toBeInTheDocument();
   });
 });

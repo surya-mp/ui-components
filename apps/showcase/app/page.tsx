@@ -374,7 +374,7 @@ export default function Showcase() {
                       <div className="max-w-md">
                         <LoginPage
                           as="div"
-                          loginOptions={['google', 'github']}
+                          authMethods={{ google: true, github: true }}
                           onProviderLogin={(provider) =>
                             alert(`Continue with ${provider}`)
                           }

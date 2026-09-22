@@ -429,7 +429,7 @@ function DocSection({ section }: { section: string }) {
             <div className="max-w-md">
               <LoginPage
                 as="div"
-                loginOptions={['google', 'github']}
+                authMethods={{ google: true, github: true }}
                 onProviderLogin={() => undefined}
               />
             </div>

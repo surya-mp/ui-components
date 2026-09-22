@@ -34,17 +34,22 @@ export function ProfilePage({
   profile,
   loading,
   onSave,
+  fields,
+  children,
 }: {
   profile: Profile;
   loading?: boolean;
   onSave: (profile: Profile) => void | Promise<void>;
+  fields?: { avatar?: boolean; name?: boolean; email?: boolean };
+  children?: ReactNode;
 }) {
   const [next, setNext] = useState(profile);
+  const visibleFields = { avatar: true, name: true, email: true, ...fields };
   return (
     <Section title="Profile" description="Update the details people see.">
       <Card>
         <div className="mb-5 flex items-center gap-3">
-          <Avatar src={next.avatar} alt={next.name} />
+          {visibleFields.avatar && <Avatar src={next.avatar} alt={next.name} />}
           <div>
             <CardTitle>{next.name || 'Your profile'}</CardTitle>
             <CardDescription>{next.email}</CardDescription>
@@ -57,33 +62,40 @@ export function ProfilePage({
             void onSave(next);
           }}
         >
-          <div>
-            <Label htmlFor="profile-name">Name</Label>
-            <Input
-              id="profile-name"
-              value={next.name}
-              onChange={(event) =>
-                setNext({ ...next, name: event.target.value })
-              }
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="profile-email">Email</Label>
-            <Input
-              id="profile-email"
-              type="email"
-              value={next.email}
-              onChange={(event) =>
-                setNext({ ...next, email: event.target.value })
-              }
-              required
-            />
-          </div>
-          <Button type="submit" loading={loading}>
-            Save changes
-          </Button>
+          {visibleFields.name && (
+            <div>
+              <Label htmlFor="profile-name">Name</Label>
+              <Input
+                id="profile-name"
+                value={next.name}
+                onChange={(event) =>
+                  setNext({ ...next, name: event.target.value })
+                }
+                required
+              />
+            </div>
+          )}
+          {visibleFields.email && (
+            <div>
+              <Label htmlFor="profile-email">Email</Label>
+              <Input
+                id="profile-email"
+                type="email"
+                value={next.email}
+                onChange={(event) =>
+                  setNext({ ...next, email: event.target.value })
+                }
+                required
+              />
+            </div>
+          )}
+          {(visibleFields.name || visibleFields.email) && (
+            <Button type="submit" loading={loading}>
+              Save changes
+            </Button>
+          )}
         </form>
+        {children}
       </Card>
     </Section>
   );
@@ -167,56 +179,79 @@ export function SecurityPage({
   twoFactorEnabled,
   onChangePassword,
   onToggleTwoFactor,
+  sections,
+  children,
 }: {
-  sessions: Session[];
+  sessions?: Session[];
   currentSessionId?: string;
-  onRevoke: (id: string) => void | Promise<void>;
-  onRevokeAll: () => void | Promise<void>;
+  onRevoke?: (id: string) => void | Promise<void>;
+  onRevokeAll?: () => void | Promise<void>;
   passwordEnabled?: boolean;
   twoFactorEnabled?: boolean;
   onChangePassword?: () => void;
   onToggleTwoFactor?: (enabled: boolean) => void;
+  sections?: { password?: boolean; twoFactor?: boolean; sessions?: boolean };
+  children?: ReactNode;
 }) {
+  const visibleSections = {
+    password: true,
+    twoFactor: true,
+    sessions: true,
+    ...sections,
+  };
   return (
     <Stack gap={8}>
-      <Section title="Security" description="Keep your account secure.">
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle>Password</CardTitle>
-              <CardDescription>
-                {passwordEnabled
-                  ? 'Password is enabled.'
-                  : 'Passwordless sign-in.'}
-              </CardDescription>
-            </div>
-            {onChangePassword && (
-              <Button variant="outline" onClick={onChangePassword}>
-                Change password
-              </Button>
+      {(visibleSections.password || visibleSections.twoFactor) && (
+        <Section title="Security" description="Keep your account secure.">
+          <Card className="space-y-4">
+            {visibleSections.password && (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Password</CardTitle>
+                  <CardDescription>
+                    {passwordEnabled
+                      ? 'Password is enabled.'
+                      : 'Passwordless sign-in.'}
+                  </CardDescription>
+                </div>
+                {onChangePassword && (
+                  <Button variant="outline" onClick={onChangePassword}>
+                    Change password
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle>Two-factor authentication</CardTitle>
-              <CardDescription>
-                {twoFactorEnabled ? 'Enabled' : 'Not enabled'}
-              </CardDescription>
-            </div>
-            <Switch
-              checked={twoFactorEnabled}
-              onChange={(event) => onToggleTwoFactor?.(event.target.checked)}
-            />
-          </div>
-        </Card>
-      </Section>
-      <SessionManager
-        sessions={sessions}
-        currentSessionId={currentSessionId}
-        onRevoke={onRevoke}
-        onRevokeAll={onRevokeAll}
-      />
+            {visibleSections.password && visibleSections.twoFactor && (
+              <Separator />
+            )}
+            {visibleSections.twoFactor && (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Two-factor authentication</CardTitle>
+                  <CardDescription>
+                    {twoFactorEnabled ? 'Enabled' : 'Not enabled'}
+                  </CardDescription>
+                </div>
+                <Switch
+                  checked={twoFactorEnabled}
+                  onChange={(event) =>
+                    onToggleTwoFactor?.(event.target.checked)
+                  }
+                />
+              </div>
+            )}
+          </Card>
+        </Section>
+      )}
+      {visibleSections.sessions && sessions && onRevoke && onRevokeAll && (
+        <SessionManager
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          onRevoke={onRevoke}
+          onRevokeAll={onRevokeAll}
+        />
+      )}
+      {children}
     </Stack>
   );
 }
@@ -296,24 +331,31 @@ export function ApiKeyManager({
   loading,
   onCreate,
   onRevoke,
+  actions,
+  children,
 }: {
   keys: ApiKey[];
   loading?: boolean;
-  onCreate: (values: {
+  onCreate?: (values: {
     name: string;
     permissions: string[];
   }) => void | Promise<void>;
-  onRevoke: (id: string) => void | Promise<void>;
+  onRevoke?: (id: string) => void | Promise<void>;
+  actions?: { create?: boolean; revoke?: boolean };
+  children?: ReactNode;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
+  const visibleActions = { create: true, revoke: true, ...actions };
   return (
     <Section
       title="API keys"
       description="Create keys for programmatic access."
     >
-      <div className="flex justify-end">
-        <Button onClick={() => setCreateOpen(true)}>Create API key</Button>
-      </div>
+      {visibleActions.create && onCreate && (
+        <div className="flex justify-end">
+          <Button onClick={() => setCreateOpen(true)}>Create API key</Button>
+        </div>
+      )}
       <Stack>
         {keys.length ? (
           keys.map((key) => (
@@ -330,14 +372,16 @@ export function ApiKeyManager({
                     : ' · Never used'}
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                loading={loading}
-                onClick={() => void onRevoke(key.id)}
-              >
-                Revoke
-              </Button>
+              {visibleActions.revoke && onRevoke && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={loading}
+                  onClick={() => void onRevoke(key.id)}
+                >
+                  Revoke
+                </Button>
+              )}
             </Card>
           ))
         ) : (
@@ -347,11 +391,14 @@ export function ApiKeyManager({
           />
         )}
       </Stack>
-      <CreateApiKeyDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreate={onCreate}
-      />
+      {children}
+      {visibleActions.create && onCreate && (
+        <CreateApiKeyDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onCreate={onCreate}
+        />
+      )}
     </Section>
   );
 }

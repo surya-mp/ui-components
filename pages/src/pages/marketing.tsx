@@ -125,9 +125,10 @@ export function LandingPage({
   features,
   children,
   as,
+  sections,
 }: {
   brand: ReactNode;
-  hero: {
+  hero?: {
     title: ReactNode;
     description: ReactNode;
     primaryAction?: ReactNode;
@@ -136,17 +137,34 @@ export function LandingPage({
   features?: Array<{ title: string; description: string; icon?: ReactNode }>;
   children?: ReactNode;
   as?: 'main' | 'div';
+  sections?: {
+    header?: boolean;
+    hero?: boolean;
+    features?: boolean;
+    footer?: boolean;
+  };
 }) {
+  const visibleSections = {
+    header: true,
+    hero: true,
+    features: true,
+    footer: true,
+    ...sections,
+  };
   return (
     <PageShell as={as}>
       <Container>
-        <header className="flex h-16 items-center justify-between">
-          <strong>{brand}</strong>
-        </header>
-        <Hero {...hero} />
-        {features && <FeatureGrid features={features} />}
+        {visibleSections.header && (
+          <header className="flex h-16 items-center justify-between">
+            <strong>{brand}</strong>
+          </header>
+        )}
+        {visibleSections.hero && hero && <Hero {...hero} />}
+        {visibleSections.features && features && (
+          <FeatureGrid features={features} />
+        )}
         {children}
-        <Footer brand={brand} />
+        {visibleSections.footer && <Footer brand={brand} />}
       </Container>
     </PageShell>
   );

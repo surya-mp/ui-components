@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import {
   Badge,
   Button,
@@ -216,34 +217,55 @@ export function BillingPage({
   onUpdatePaymentMethod,
   onCancel,
   onViewInvoice,
+  sections,
+  children,
 }: {
   subscription?: Subscription;
   paymentMethod?: PaymentMethod;
-  invoices: Invoice[];
+  invoices?: Invoice[];
   onChangePlan?: () => void;
   onUpdatePaymentMethod?: () => void;
   onCancel?: () => void;
   onViewInvoice?: (invoice: Invoice) => void;
+  sections?: {
+    subscription?: boolean;
+    paymentMethod?: boolean;
+    invoices?: boolean;
+  };
+  children?: ReactNode;
 }) {
+  const visibleSections = {
+    subscription: true,
+    paymentMethod: true,
+    invoices: true,
+    ...sections,
+  };
   return (
     <Stack gap={8}>
-      <Section
-        title="Billing"
-        description="Manage your plan and payment details."
-      >
-        <SubscriptionCard
-          subscription={subscription}
-          onChangePlan={onChangePlan}
-          onCancel={onCancel}
+      {visibleSections.subscription && (
+        <Section
+          title="Billing"
+          description="Manage your plan and payment details."
+        >
+          <SubscriptionCard
+            subscription={subscription}
+            onChangePlan={onChangePlan}
+            onCancel={onCancel}
+          />
+        </Section>
+      )}
+      {visibleSections.paymentMethod && (
+        <PaymentMethodCard
+          paymentMethod={paymentMethod}
+          onUpdate={onUpdatePaymentMethod}
         />
-      </Section>
-      <PaymentMethodCard
-        paymentMethod={paymentMethod}
-        onUpdate={onUpdatePaymentMethod}
-      />
-      <Section title="Invoices">
-        <InvoiceTable invoices={invoices} onView={onViewInvoice} />
-      </Section>
+      )}
+      {visibleSections.invoices && (
+        <Section title="Invoices">
+          <InvoiceTable invoices={invoices ?? []} onView={onViewInvoice} />
+        </Section>
+      )}
+      {children}
     </Stack>
   );
 }
