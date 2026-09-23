@@ -464,7 +464,13 @@ function DocSection({
               />
             </div>
             <ProfilePage
-              profile={{ name: 'Surya', email: 'surya@example.com' }}
+              profile={{
+                firstName: 'Surya',
+                lastName: 'Mandava',
+                username: 'surya',
+                email: 'surya@example.com',
+              }}
+              fields={{ username: true }}
               onSave={() => undefined}
               dangerZone={{ onDeleteAccount: () => undefined }}
             />
@@ -488,6 +494,15 @@ function DocSection({
           </div>
           {snippet(
             `<ProfilePage profile={profile} onSave={saveProfile}\n  dangerZone={{ onDeleteAccount: deleteAccount }} />\n<ApiKeyManager keys={keys} onCreate={createKey} onRevoke={revokeKey} />`,
+          )}
+        </Demo>
+        <Demo title="Stripe Elements payments">
+          <Alert title="Server-owned payment creation">
+            Create the payment or subscription server-side and pass only its
+            client secret to the browser. Do not expose a Stripe secret key.
+          </Alert>
+          {snippet(
+            `const stripe = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);\n\n<StripePaymentPage\n  payment={{ stripe, options: { clientSecret: paymentClientSecret }, returnUrl }}\n  billing={{ stripe, options: { clientSecret: subscriptionClientSecret }, returnUrl }}\n  sections={{ billing: false }}\n/>`,
           )}
         </Demo>
       </Doc>

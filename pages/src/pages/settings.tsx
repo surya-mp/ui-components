@@ -32,7 +32,13 @@ import { BillingPage } from './billing';
 export function SettingsLayout({ children }: { children: ReactNode }) {
   return <div className="min-w-0 space-y-8">{children}</div>;
 }
-export type Profile = { name: string; email: string; avatar?: string };
+export type Profile = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  username?: string;
+  avatar?: string;
+};
 export function ProfileSummary({
   profile,
   showAvatar = true,
@@ -40,11 +46,14 @@ export function ProfileSummary({
   profile: Profile;
   showAvatar?: boolean;
 }) {
+  const fullName = [profile.firstName, profile.lastName]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div className="mb-5 flex items-center gap-3">
-      {showAvatar && <Avatar src={profile.avatar} alt={profile.name} />}
+      {showAvatar && <Avatar src={profile.avatar} alt={fullName} />}
       <div className="min-w-0">
-        <CardTitle>{profile.name || 'Your profile'}</CardTitle>
+        <CardTitle>{fullName || 'Your profile'}</CardTitle>
         <CardDescription>{profile.email}</CardDescription>
       </div>
     </div>
@@ -62,7 +71,13 @@ export function ProfilePage({
   profile: Profile;
   loading?: boolean;
   onSave: (profile: Profile) => void | Promise<void>;
-  fields?: { avatar?: boolean; name?: boolean; email?: boolean };
+  fields?: {
+    avatar?: boolean;
+    firstName?: boolean;
+    lastName?: boolean;
+    username?: boolean;
+    email?: boolean;
+  };
   sections?: { details?: boolean; dangerZone?: boolean };
   dangerZone?: {
     onDeleteAccount: () => void | Promise<void>;
@@ -71,7 +86,14 @@ export function ProfilePage({
   children?: ReactNode;
 }) {
   const [next, setNext] = useState(profile);
-  const visibleFields = { avatar: true, name: true, email: true, ...fields };
+  const visibleFields = {
+    avatar: true,
+    firstName: true,
+    lastName: true,
+    username: false,
+    email: true,
+    ...fields,
+  };
   const visibleSections = {
     details: true,
     dangerZone: Boolean(dangerZone),
@@ -90,15 +112,49 @@ export function ProfilePage({
                 void onSave(next);
               }}
             >
-              {visibleFields.name && (
-                <FormField label="Name" htmlFor="profile-name" required>
+              {visibleFields.firstName && (
+                <FormField
+                  label="First name"
+                  htmlFor="profile-first-name"
+                  required
+                >
                   <Input
-                    id="profile-name"
-                    value={next.name}
+                    id="profile-first-name"
+                    value={next.firstName}
                     onChange={(event) =>
-                      setNext({ ...next, name: event.target.value })
+                      setNext({ ...next, firstName: event.target.value })
                     }
+                    autoComplete="given-name"
                     required
+                  />
+                </FormField>
+              )}
+              {visibleFields.lastName && (
+                <FormField
+                  label="Last name"
+                  htmlFor="profile-last-name"
+                  required
+                >
+                  <Input
+                    id="profile-last-name"
+                    value={next.lastName}
+                    onChange={(event) =>
+                      setNext({ ...next, lastName: event.target.value })
+                    }
+                    autoComplete="family-name"
+                    required
+                  />
+                </FormField>
+              )}
+              {visibleFields.username && (
+                <FormField label="Username" htmlFor="profile-username">
+                  <Input
+                    id="profile-username"
+                    value={next.username ?? ''}
+                    onChange={(event) =>
+                      setNext({ ...next, username: event.target.value })
+                    }
+                    autoComplete="username"
                   />
                 </FormField>
               )}
@@ -115,7 +171,10 @@ export function ProfilePage({
                   />
                 </FormField>
               )}
-              {(visibleFields.name || visibleFields.email) && (
+              {(visibleFields.firstName ||
+                visibleFields.lastName ||
+                visibleFields.username ||
+                visibleFields.email) && (
                 <Button type="submit" loading={loading}>
                   Save changes
                 </Button>
@@ -529,6 +588,7 @@ export function DangerZone({
             id="delete-confirmation"
             value={value}
             onChange={(event) => setValue(event.target.value)}
+            placeholder={confirmationText}
           />
         </div>
         <Button

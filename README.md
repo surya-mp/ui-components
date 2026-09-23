@@ -26,8 +26,8 @@ applications retain ownership of APIs, routing, auth, and payments.
 
 ## Releases
 
-Run `pnpm changeset` for every publishable change and commit the generated
-file. Merging to `main` opens or updates a version PR; merging that PR publishes
-the ordered package versions and creates their Git tags. Configure npm Trusted
+Before pushing a publishable change, update the affected package version and
+its changelog. A push to `main` runs the checks, publishes package versions
+that are not yet on npm, and pushes their Git tags. Configure npm Trusted
 Publishing for both packages against `.github/workflows/release.yml` before the
 first automated release.

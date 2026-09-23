@@ -1,5 +1,16 @@
 # @sypra-ui/pages
 
+## 0.6.0
+
+### Major Changes
+
+- Replace `Profile.name` with separate `firstName` and `lastName` fields.
+
+### Minor Changes
+
+- Add opt-in profile usernames and Stripe Elements payment, billing, and
+  composition components.
+
 ## 0.5.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@sypra-ui/pages",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Data-and-callback driven React page compositions.",
   "license": "MIT",
   "repository": {
@@ -14,8 +14,10 @@
     "auth",
     "billing",
     "pages",
+    "payments",
     "react",
     "saas",
+    "stripe",
     "tailwindcss",
     "typescript"
   ],
@@ -35,27 +37,31 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.tsx --format esm --dts --sourcemap --external react --external react-dom --external @sypra-ui/ui --clean",
+    "build": "tsup src/index.tsx --format esm --dts --sourcemap --external react --external react-dom --external @sypra-ui/ui --external @stripe/react-stripe-js --external @stripe/stripe-js --clean",
     "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src && prettier --check src"
   },
   "peerDependencies": {
+    "@stripe/react-stripe-js": "^6.12.0",
+    "@stripe/stripe-js": "^9.17.0",
+    "@sypra-ui/ui": "^0.2.0",
     "react": ">=18",
-    "react-dom": ">=18",
-    "@sypra-ui/ui": "^0.2.0"
+    "react-dom": ">=18"
   },
   "devDependencies": {
+    "@stripe/react-stripe-js": "^6.12.0",
+    "@stripe/stripe-js": "^9.17.0",
     "@sypra-ui/ui": "workspace:*",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "jsdom": "^25.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "jsdom": "^25.0.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

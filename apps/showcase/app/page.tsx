@@ -385,10 +385,13 @@ export default function Showcase() {
                       <AccountSettingsPage
                         profile={{
                           profile: {
-                            name: 'Surya',
+                            firstName: 'Surya',
+                            lastName: 'Mandava',
+                            username: 'surya',
                             email: 'surya@example.com',
                           },
                           onSave: () => alert('Save callback'),
+                          fields: { username: true },
                           dangerZone: {
                             onDeleteAccount: () => alert('Delete account'),
                           },

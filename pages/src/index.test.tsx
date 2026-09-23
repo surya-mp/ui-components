@@ -60,6 +60,19 @@ describe('page compositions', () => {
       screen.getByRole('button', { name: 'Continue with Google' }),
     );
     expect(onProviderLogin).toHaveBeenCalledWith('google');
+    const googleButton = screen.getByRole('button', {
+      name: 'Continue with Google',
+    });
+    expect(googleButton).toHaveClass(
+      'w-full',
+      'max-w-sm',
+      'bg-white',
+      'border-black/10',
+    );
+    expect(googleButton.querySelector('svg')).toHaveAttribute(
+      'viewBox',
+      '0 0 18 18',
+    );
 
     rerender(
       <LoginPage
@@ -81,8 +94,11 @@ describe('page compositions', () => {
     render(<DangerZone onDeleteAccount={onDeleteAccount} />);
 
     const button = screen.getByRole('button', { name: 'Delete account' });
+    const confirmation = screen.getByLabelText(/Type DELETE/);
     expect(button).toBeDisabled();
-    await user.type(screen.getByLabelText(/Type DELETE/), 'DELETE');
+    expect(confirmation).toHaveAttribute('placeholder', 'DELETE');
+    await user.type(confirmation, 'DELETE');
+    expect(confirmation).toHaveValue('DELETE');
     await user.click(button);
 
     expect(onDeleteAccount).toHaveBeenCalledOnce();
@@ -90,7 +106,11 @@ describe('page compositions', () => {
 
   it('adds the profile danger zone only when selected', () => {
     const props = {
-      profile: { name: 'Avery', email: 'avery@example.com' },
+      profile: {
+        firstName: 'Avery',
+        lastName: 'Stone',
+        email: 'avery@example.com',
+      },
       onSave: () => undefined,
       dangerZone: { onDeleteAccount: () => undefined },
     };
@@ -99,6 +119,27 @@ describe('page compositions', () => {
     expect(screen.getByText('Danger zone')).toBeInTheDocument();
     rerender(<ProfilePage {...props} sections={{ dangerZone: false }} />);
     expect(screen.queryByText('Danger zone')).not.toBeInTheDocument();
+  });
+
+  it('renders the optional username field only when selected', () => {
+    const props = {
+      profile: {
+        firstName: 'Avery',
+        lastName: 'Stone',
+        email: 'avery@example.com',
+        username: 'avery',
+      },
+      onSave: () => undefined,
+    };
+    const { rerender } = render(<ProfilePage {...props} />);
+
+    expect(screen.getByLabelText(/First name/)).toHaveValue('Avery');
+    expect(screen.getByLabelText(/Last name/)).toHaveValue('Stone');
+    expect(screen.queryByLabelText('Username')).not.toBeInTheDocument();
+    rerender(<ProfilePage {...props} fields={{ username: true }} />);
+    expect(screen.getByLabelText('Username')).toHaveValue('avery');
+    rerender(<ProfilePage {...props} fields={{ username: false }} />);
+    expect(screen.queryByLabelText('Username')).not.toBeInTheDocument();
   });
 
   it('reports the selected pricing plan to the application', async () => {
@@ -129,7 +170,11 @@ describe('page compositions', () => {
       <>
         <AuthProviderButton provider="github" onClick={providerLogin} />
         <ProfileSummary
-          profile={{ name: 'Avery', email: 'avery@example.com' }}
+          profile={{
+            firstName: 'Avery',
+            lastName: 'Stone',
+            email: 'avery@example.com',
+          }}
         />
         <SessionCard
           session={{ id: '1', device: 'Chrome', lastActive: 'Active now' }}
@@ -172,7 +217,11 @@ describe('page compositions', () => {
     render(
       <AccountSettingsPage
         profile={{
-          profile: { name: 'Avery', email: 'avery@example.com' },
+          profile: {
+            firstName: 'Avery',
+            lastName: 'Stone',
+            email: 'avery@example.com',
+          },
           onSave: () => undefined,
         }}
         sections={{ security: false, apiKeys: false, billing: false }}
