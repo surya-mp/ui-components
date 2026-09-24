@@ -1,5 +1,14 @@
 # @sypra-ui/pages
 
+## 0.7.1
+
+### Patch Changes
+
+- Document custom server-created PaymentIntent integration without Stripe Price
+  presets.
+- Document Dashboard-managed global methods, fixed server-side allow-lists,
+  and Apple Pay/Google Pay wallet configuration.
+
 ## 0.7.0
 
 ### Minor Changes

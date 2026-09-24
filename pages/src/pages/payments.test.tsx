@@ -14,8 +14,11 @@ vi.mock('@stripe/react-stripe-js', async () => {
   return {
     Elements: ({ children }: { children?: ReactNode }) =>
       createElement('div', { 'data-testid': 'stripe-elements' }, children),
-    PaymentElement: () =>
-      createElement('div', { 'data-testid': 'payment-element' }),
+    PaymentElement: ({ options }: { options?: unknown }) =>
+      createElement('div', {
+        'data-testid': 'payment-element',
+        'data-options': JSON.stringify(options),
+      }),
     useElements: () => ({ submit: stripe.submit }),
     useStripe: () => ({
       confirmPayment: stripe.confirmPayment,
@@ -132,5 +135,30 @@ describe('Stripe payment compositions', () => {
     expect(
       screen.queryByRole('heading', { name: 'Billing' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('forwards fixed method ordering and wallet visibility to Payment Element', () => {
+    render(
+      <StripePaymentPage
+        payment={{
+          stripe: null,
+          options: { clientSecret: 'payment_secret' },
+          paymentElementOptions: {
+            paymentMethodOrder: ['card', 'us_bank_account'],
+            wallets: { applePay: 'auto', googlePay: 'auto', link: 'never' },
+          },
+          returnUrl: 'https://example.com/payment-complete',
+        }}
+      />,
+    );
+
+    expect(
+      JSON.parse(
+        screen.getByTestId('payment-element').getAttribute('data-options')!,
+      ),
+    ).toEqual({
+      paymentMethodOrder: ['card', 'us_bank_account'],
+      wallets: { applePay: 'auto', googlePay: 'auto', link: 'never' },
+    });
   });
 });

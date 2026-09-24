@@ -23,7 +23,7 @@ export type StripeInstance = Stripe | PromiseLike<Stripe | null> | null;
 export type StripeElementsConfiguration = {
   /** A Stripe instance created with `loadStripe` from `@stripe/stripe-js`. */
   stripe: StripeInstance;
-  /** Include the PaymentIntent or SetupIntent client secret from your server. */
+  /** Include a server-created PaymentIntent or SetupIntent client secret. */
   options: StripeElementsOptions;
   paymentElementOptions?: PaymentElementProps['options'];
 };
@@ -44,6 +44,7 @@ export function StripeElementsProvider({
 export type StripePaymentFormProps = {
   /** A same-origin page Stripe can return to after redirect-based payments. */
   returnUrl: string;
+  /** Order eligible methods and control Apple Pay or Google Pay visibility. */
   paymentElementOptions?: PaymentElementProps['options'];
   submitLabel?: ReactNode;
   loadingLabel?: ReactNode;

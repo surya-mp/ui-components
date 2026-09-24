@@ -72,6 +72,73 @@ both cards. For a custom layout, compose `StripeElementsProvider` with
 `redirect: 'if_required'`; `returnUrl` is therefore required for payment
 methods that leave your site.
 
+### Custom PaymentIntent (without a Stripe Price)
+
+No library change or Dashboard `price_id` is required for a custom one-time
+payment. Resolve an application-owned order on your server, calculate its
+amount there, create the `PaymentIntent`, and give the returned client secret
+to the existing `payment` configuration. Never accept the final amount from
+the browser.
+
+```ts
+// app/api/payment-intent/route.ts
+import Stripe from 'stripe';
+import { NextResponse } from 'next/server';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+export async function POST(request: Request) {
+  const { orderId } = (await request.json()) as { orderId: string };
+  const order = await approvedOrderForAuthenticatedUser(orderId);
+  if (!order) return new Response('Invalid order', { status: 400 });
+
+  const intent = await stripe.paymentIntents.create({
+    amount: order.totalInCents,
+    currency: order.currency,
+    automatic_payment_methods: { enabled: true },
+    metadata: { orderId: order.id },
+  });
+  return NextResponse.json({ clientSecret: intent.client_secret });
+}
+```
+
+```tsx
+const { clientSecret } = await fetch('/api/payment-intent', {
+  method: 'POST',
+  body: JSON.stringify({ orderId }),
+}).then((response) => response.json());
+
+<StripePaymentPage
+  payment={{
+    stripe,
+    options: { clientSecret },
+    paymentElementOptions: { wallets: { applePay: 'auto', googlePay: 'auto' } },
+    returnUrl: `${window.location.origin}/checkout/complete`,
+  }}
+/>
+```
+
+Create subscriptions with Stripe Prices when that fits your billing model; use
+a custom PaymentIntent for an application-calculated one-time amount.
+
+### Global or fixed payment methods
+
+The library does not restrict Stripe methods. The example uses
+`automatic_payment_methods`, so each application can manage its global enabled
+methods in the Stripe Dashboard and Stripe can show the eligible subset for the
+customer, amount, currency, and country.
+
+When an application requires a fixed allow-list, replace that setting on its
+server with `payment_method_types`, for example `['card', 'us_bank_account']`.
+Use the bank method appropriate to the customer country and Stripe account,
+such as `sepa_debit` for eligible SEPA payments. Apple Pay and Google Pay are
+card wallets, not additional PaymentIntent types: keep `card` enabled and use
+`paymentElementOptions.wallets` only to allow or hide each wallet. Stripe shows
+an allowed wallet only on supported devices/browsers and verified domains.
+`paymentMethodOrder` changes display order only; it never enables a method.
+See Stripe’s [PaymentIntent API](https://docs.stripe.com/api/payment_intents/create)
+and [Payment Element wallet options](https://docs.stripe.com/payments/payment-element).
+
 ## Complete subscription contract
 
 The library deliberately does not create Stripe objects. Use the optional
