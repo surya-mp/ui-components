@@ -8,7 +8,7 @@ import {
   Card,
   CardDescription,
   CardTitle,
-  Checkbox,
+  Collapsible,
   Dialog,
   DialogBody,
   DialogClose,
@@ -20,7 +20,10 @@ import {
   EmptyState,
   FormField,
   Input,
+  InputOTP,
   Label,
+  RadioGroup,
+  ScrollArea,
   Section,
   Separator,
   SettingRow,
@@ -239,31 +242,33 @@ export function SessionManager({
       title="Active sessions"
       description="Review where your account is signed in."
     >
-      <Stack>
-        {sessions.length ? (
-          sessions.map((session) => (
-            <SessionCard
-              key={session.id}
-              session={session}
-              current={session.id === currentSessionId}
-              action={
-                session.id !== currentSessionId ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    loading={loading}
-                    onClick={() => void onRevoke(session.id)}
-                  >
-                    Revoke
-                  </Button>
-                ) : undefined
-              }
-            />
-          ))
-        ) : (
-          <EmptyState title="No sessions" />
-        )}
-      </Stack>
+      <ScrollArea className={sessions.length > 3 ? 'max-h-96 pr-1' : undefined}>
+        <Stack>
+          {sessions.length ? (
+            sessions.map((session) => (
+              <SessionCard
+                key={session.id}
+                session={session}
+                current={session.id === currentSessionId}
+                action={
+                  session.id !== currentSessionId ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      loading={loading}
+                      onClick={() => void onRevoke(session.id)}
+                    >
+                      Revoke
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ))
+          ) : (
+            <EmptyState title="No sessions" />
+          )}
+        </Stack>
+      </ScrollArea>
       {sessions.length > 1 && (
         <Button
           variant="destructive"
@@ -285,6 +290,7 @@ export function SecurityPage({
   twoFactorEnabled,
   onChangePassword,
   onToggleTwoFactor,
+  twoFactorVerification,
   sections,
   children,
 }: {
@@ -296,6 +302,10 @@ export function SecurityPage({
   twoFactorEnabled?: boolean;
   onChangePassword?: () => void;
   onToggleTwoFactor?: (enabled: boolean) => void;
+  twoFactorVerification?: {
+    onVerify: (code: string) => void | Promise<void>;
+    length?: number;
+  };
   sections?: { password?: boolean; twoFactor?: boolean; sessions?: boolean };
   children?: ReactNode;
 }) {
@@ -331,18 +341,31 @@ export function SecurityPage({
               <Separator />
             )}
             {visibleSections.twoFactor && (
-              <SettingRow
-                title="Two-factor authentication"
-                description={twoFactorEnabled ? 'Enabled' : 'Not enabled'}
-                action={
-                  <Switch
-                    checked={twoFactorEnabled}
-                    onChange={(event) =>
-                      onToggleTwoFactor?.(event.target.checked)
-                    }
-                  />
-                }
-              />
+              <div className="space-y-4">
+                <SettingRow
+                  title="Two-factor authentication"
+                  description={twoFactorEnabled ? 'Enabled' : 'Not enabled'}
+                  action={
+                    <Switch
+                      checked={twoFactorEnabled}
+                      onChange={(event) =>
+                        onToggleTwoFactor?.(event.target.checked)
+                      }
+                    />
+                  }
+                />
+                {twoFactorVerification && (
+                  <div className="max-w-sm">
+                    <Label>Authentication code</Label>
+                    <InputOTP
+                      length={twoFactorVerification.length}
+                      onComplete={(code) =>
+                        void twoFactorVerification.onVerify(code)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </Card>
         </Section>
@@ -405,7 +428,7 @@ export function CreateApiKeyDialog({
   }) => void | Promise<void>;
 }) {
   const [name, setName] = useState('');
-  const [write, setWrite] = useState(false);
+  const [access, setAccess] = useState<'read' | 'write'>('read');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -425,13 +448,20 @@ export function CreateApiKeyDialog({
               placeholder="Production"
             />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={write}
-              onChange={(event) => setWrite(event.target.checked)}
-            />{' '}
-            Allow write access
-          </label>
+          <RadioGroup
+            name="key-access"
+            label="Access"
+            value={access}
+            onValueChange={(value) => setAccess(value as 'read' | 'write')}
+            options={[
+              { value: 'read', label: 'Read only' },
+              {
+                value: 'write',
+                label: 'Read and write',
+                description: 'Allows changes through this key.',
+              },
+            ]}
+          />
         </DialogBody>
         <DialogFooter>
           <DialogClose asChild>
@@ -441,7 +471,7 @@ export function CreateApiKeyDialog({
             onClick={() => {
               void onCreate({
                 name,
-                permissions: write ? ['read', 'write'] : ['read'],
+                permissions: access === 'write' ? ['read', 'write'] : ['read'],
               });
               onOpenChange(false);
             }}
@@ -575,8 +605,10 @@ export function DangerZone({
   const [value, setValue] = useState('');
   return (
     <Section title="Danger zone" description="These actions are permanent.">
-      <Card className="border-[hsl(var(--rui-destructive))]">
-        <CardTitle>Delete account</CardTitle>
+      <Collapsible
+        title="Delete account"
+        className="border-[hsl(var(--rui-destructive))]"
+      >
         <CardDescription>
           Delete all account data. This cannot be undone.
         </CardDescription>
@@ -594,12 +626,13 @@ export function DangerZone({
         <Button
           className="mt-4"
           variant="destructive"
+          aria-label="Confirm delete account"
           disabled={value !== confirmationText}
           onClick={() => void onDeleteAccount()}
         >
           Delete account
         </Button>
-      </Card>
+      </Collapsible>
     </Section>
   );
 }

@@ -40,8 +40,7 @@ pnpm add @stripe/stripe-js @stripe/react-stripe-js
 ```
 
 Create the `PaymentIntent`, `SetupIntent`, or subscription on your server and
-return only its client secret to a client component. A paid subscription uses
-the first invoice's `PaymentIntent` client secret; use `mode="setup"` only
+return only its client secret to a client component. Use `mode="setup"` only
 when saving a payment method for future billing.
 
 ```tsx
@@ -72,6 +71,310 @@ both cards. For a custom layout, compose `StripeElementsProvider` with
 `StripePaymentForm` or `StripeBillingForm` directly. Stripe confirmation uses
 `redirect: 'if_required'`; `returnUrl` is therefore required for payment
 methods that leave your site.
+
+## Complete subscription contract
+
+The library deliberately does not create Stripe objects. Use the optional
+types below to keep the browser and your application server aligned:
+
+```ts
+import type {
+  StripePortalRequest,
+  StripePortalResponse,
+  StripeSubscribeRequest,
+  StripeSubscribeResponse,
+  StripeWebhookEvent,
+} from '@sypra-ui/pages';
+
+// POST /subscribe: StripeSubscribeRequest -> StripeSubscribeResponse
+// POST /portal: StripePortalRequest -> StripePortalResponse
+// POST /webhook: verified Stripe event -> { received: true }
+```
+
+The intended flow is:
+
+1. `POST /subscribe` resolves the authenticated customer and an approved plan,
+   creates the subscription, and returns a client secret when payment is due.
+2. The browser gives that secret to `StripeBillingForm` or
+   `StripePaymentPage`; it never receives a Stripe secret key.
+3. `POST /portal` creates a short-lived Billing Portal session and returns its
+   URL for navigation.
+4. `POST /webhook` verifies Stripe's raw signed event and grants or revokes
+   product access from the event—not from the browser callback.
+
+For a paid subscription, expand `latest_invoice.confirmation_secret` and use
+`confirmation_secret.client_secret` first. Modern Stripe invoices expose the
+client secret there; retain the expanded `payment_intent.client_secret` as a
+compatibility fallback. If the subscription begins without payment, return
+`clientSecret: null` and refresh the account state instead. Stripe documents
+the invoice confirmation secret and `default_incomplete` subscription flow in
+its [Invoice API](https://docs.stripe.com/api/invoices/object) and
+[Subscription API](https://docs.stripe.com/api/subscriptions/create).
+
+### Next.js route handlers
+
+Install the server SDK in the application, not this UI package:
+
+```sh
+pnpm add stripe
+```
+
+```ts
+// app/api/subscribe/route.ts
+import Stripe from 'stripe';
+import { NextResponse } from 'next/server';
+import type {
+  StripeSubscribeRequest,
+  StripeSubscribeResponse,
+} from '@sypra-ui/pages';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const prices: Record<string, string> = { pro: 'price_pro' };
+
+export async function POST(request: Request) {
+  const { plan } = (await request.json()) as StripeSubscribeRequest;
+  const price = prices[plan];
+  const customer = await customerForAuthenticatedUser();
+  if (!price || !customer)
+    return new Response('Invalid subscription', { status: 400 });
+
+  const subscription = await stripe.subscriptions.create({
+    customer,
+    items: [{ price }],
+    payment_behavior: 'default_incomplete',
+    payment_settings: { save_default_payment_method: 'on_subscription' },
+    expand: [
+      'latest_invoice.confirmation_secret',
+      'latest_invoice.payment_intent',
+    ],
+  });
+  const invoice = subscription.latest_invoice as Stripe.Invoice | null;
+  const clientSecret =
+    invoice?.confirmation_secret?.client_secret ??
+    (typeof invoice?.payment_intent === 'string'
+      ? null
+      : (invoice?.payment_intent?.client_secret ?? null));
+
+  return NextResponse.json({
+    subscriptionId: subscription.id,
+    status: subscription.status,
+    clientSecret,
+  } satisfies StripeSubscribeResponse);
+}
+```
+
+```ts
+// app/api/portal/route.ts
+import Stripe from 'stripe';
+import { NextResponse } from 'next/server';
+import type {
+  StripePortalRequest,
+  StripePortalResponse,
+} from '@sypra-ui/pages';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+export async function POST(request: Request) {
+  const { returnUrl } = (await request.json()) as StripePortalRequest;
+  const customer = await customerForAuthenticatedUser();
+  if (!customer) return new Response('Unauthorized', { status: 401 });
+
+  const portal = await stripe.billingPortal.sessions.create({
+    customer,
+    return_url: returnUrl,
+  });
+  return NextResponse.json({ url: portal.url } satisfies StripePortalResponse);
+}
+```
+
+```ts
+// app/api/webhook/route.ts
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+export async function POST(request: Request) {
+  const signature = request.headers.get('stripe-signature');
+  if (!signature) return new Response('Missing signature', { status: 400 });
+
+  try {
+    const event = stripe.webhooks.constructEvent(
+      await request.text(),
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!,
+    );
+    await handleStripeEvent({ id: event.id, type: event.type });
+    return Response.json({ received: true });
+  } catch {
+    return new Response('Invalid signature', { status: 400 });
+  }
+}
+```
+
+### Express server with a Vite client
+
+Put the API on the Express server; Vite only serves the browser application.
+Register the raw webhook route before `express.json()` so Stripe signature
+verification receives the untouched body.
+
+```ts
+// server.ts
+import express from 'express';
+import Stripe from 'stripe';
+import type {
+  StripePortalRequest,
+  StripeSubscribeRequest,
+} from '@sypra-ui/pages';
+
+const app = express();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const prices: Record<string, string> = { pro: 'price_pro' };
+
+app.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    try {
+      const event = stripe.webhooks.constructEvent(
+        req.body,
+        req.header('stripe-signature') ?? '',
+        process.env.STRIPE_WEBHOOK_SECRET!,
+      );
+      await handleStripeEvent({ id: event.id, type: event.type });
+      res.json({ received: true });
+    } catch {
+      res.status(400).send('Invalid signature');
+    }
+  },
+);
+
+app.use(express.json());
+
+app.post('/subscribe', async (req, res) => {
+  const { plan } = req.body as StripeSubscribeRequest;
+  const price = prices[plan];
+  const customer = await customerForAuthenticatedUser(req);
+  if (!price || !customer) return res.status(400).send('Invalid subscription');
+
+  const subscription = await stripe.subscriptions.create({
+    customer,
+    items: [{ price }],
+    payment_behavior: 'default_incomplete',
+    expand: [
+      'latest_invoice.confirmation_secret',
+      'latest_invoice.payment_intent',
+    ],
+  });
+  const invoice = subscription.latest_invoice as Stripe.Invoice | null;
+  const clientSecret =
+    invoice?.confirmation_secret?.client_secret ??
+    (typeof invoice?.payment_intent === 'string'
+      ? null
+      : (invoice?.payment_intent?.client_secret ?? null));
+  res.json({
+    subscriptionId: subscription.id,
+    status: subscription.status,
+    clientSecret,
+  });
+});
+
+app.post('/portal', async (req, res) => {
+  const { returnUrl } = req.body as StripePortalRequest;
+  const customer = await customerForAuthenticatedUser(req);
+  if (!customer) return res.sendStatus(401);
+  const portal = await stripe.billingPortal.sessions.create({
+    customer,
+    return_url: returnUrl,
+  });
+  res.json({ url: portal.url });
+});
+```
+
+Both examples leave application authentication, plan authorization, database
+updates, and idempotent webhook processing to your server. Stripe recommends
+using webhook events for fulfillment because a browser can close or be
+modified before its callback completes. See the [Payment Element
+guide](https://docs.stripe.com/payments/payment-element/migration) and
+[Billing Portal API](https://docs.stripe.com/api/customer_portal/sessions/create).
+
+## Completion and system status pages
+
+`StatusPage` is the composable base. Its specific variants provide consistent
+copy and accessible page structure while leaving all routing and actions to
+your application:
+
+```tsx
+import { Button } from '@sypra-ui/ui';
+import {
+  NotFoundPage,
+  OfflinePage,
+  PaymentStatusPage,
+} from '@sypra-ui/pages';
+
+<PaymentStatusPage
+  status="processing"
+  actions={<Button onClick={openBilling}>View billing</Button>}
+/>
+<NotFoundPage actions={<a href="/">Back home</a>} />
+<OfflinePage actions={<Button onClick={() => window.location.reload()}>Try again</Button>} />
+```
+
+Available completion pages: `PaymentStatusPage` (`succeeded`, `processing`,
+`failed`), `OAuthStatusPage` (`succeeded`, `failed`, `cancelled`),
+`EmailVerificationPage` (`verified`, `pending`, `expired`), and
+`InvitationStatusPage` (`accepted`, `expired`, `invalid`). Available system
+pages: `AccessDeniedPage`, `NotFoundPage`, `ServerErrorPage`,
+`MaintenancePage`, and `OfflinePage`. Every variant accepts `title`,
+`description`, `tone`, `actions`, and `children` for application-specific
+content.
+
+## Organization and members
+
+`OrganizationPage` is for a customer's own workspace. It does not model a
+platform-super-admin console or cross-organization support access. Membership
+roles are scoped to the organization, so one person can have a different role
+in another workspace.
+
+```tsx
+<OrganizationPage
+  organization={{ id: 'org_1', name: 'Acme', slug: 'acme', plan: 'Pro' }}
+  members={members}
+  invitations={invitations}
+  roles={['Owner', 'Admin', 'Member', 'Viewer']}
+  onInvite={({ email, role }) => inviteMember(email, role)}
+  onChangeRole={(member, role) => updateMemberRole(member.id, role)}
+  onRemoveMember={(member) => removeMember(member.id)}
+  onResendInvitation={(invitation) => resendInvitation(invitation.id)}
+  onRevokeInvitation={(invitation) => revokeInvitation(invitation.id)}
+/>
+```
+
+Use `OrganizationSummary`, `InviteMemberDialog`, `OrganizationMemberTable`,
+and `PendingInvitationList` independently for a custom workspace settings
+layout. Your application remains responsible for role authorization and for
+enforcing ownership rules.
+
+## Security and API-key integrations
+
+`SecurityPage` uses `InputOTP` when you supply `twoFactorVerification`; the
+completed code is delivered to your callback. `CreateApiKeyDialog` uses a
+radio group for the built-in read-only/read-and-write choices. These controls
+remain frontend-only: validate the code and grant the requested key scope on
+your server.
+
+```tsx
+<SecurityPage
+  twoFactorEnabled
+  onToggleTwoFactor={setTwoFactorEnabled}
+  twoFactorVerification={{ length: 6, onVerify: verifyTwoFactorCode }}
+/>
+
+<ApiKeyManager
+  keys={keys}
+  onCreate={({ name, permissions }) => createKey({ name, permissions })}
+  onRevoke={(id) => revokeKey(id)}
+/>
+```
 
 ## Authentication methods
 
@@ -150,6 +453,11 @@ Use exported components directly when you need a custom layout:
 - Payments: `StripeElementsProvider`, `StripePaymentForm`,
   `StripeBillingForm`, `StripePaymentWidget`, `StripeBillingWidget`,
   `StripePaymentPage`
+- Status: `StatusPage`, `PaymentStatusPage`, `OAuthStatusPage`,
+  `EmailVerificationPage`, `InvitationStatusPage`, `AccessDeniedPage`,
+  `NotFoundPage`, `ServerErrorPage`, `MaintenancePage`, `OfflinePage`
+- Organization: `OrganizationSummary`, `InviteMemberDialog`,
+  `OrganizationMemberTable`, `PendingInvitationList`, `OrganizationPage`
 - Marketing: `MarketingHeader`, `Hero`, `FeatureGrid`, `FAQ`, `CTA`,
   `Footer`
 
@@ -172,4 +480,16 @@ application-specific content:
 <BillingPage sections={{ paymentMethod: false }} invoices={invoices}>
   <UsageChart />
 </BillingPage>
+```
+
+## Testing an integration
+
+Pages intentionally do not make network calls. Test them by rendering with
+fixture data and asserting your callbacks, then test your API, OAuth, and
+Stripe routes separately. The repository runs the package unit suites with:
+
+```sh
+pnpm test
+pnpm --filter @sypra-ui/ui test:coverage
+pnpm --filter @sypra-ui/pages test:coverage
 ```

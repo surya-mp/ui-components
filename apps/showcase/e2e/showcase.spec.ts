@@ -23,3 +23,20 @@ test('showcase composes account settings from selectable sections', async ({
   await expect(page.getByText('Danger zone', { exact: true })).toBeVisible();
   await expect(page.getByText('API keys', { exact: true })).toBeVisible();
 });
+
+test('showcase renders keyboard-accessible advanced form primitives', async ({
+  page,
+}) => {
+  await page.goto('/docs/forms');
+  const role = page.getByRole('combobox', { name: 'Role' });
+  await role.click();
+  await page.getByRole('option', { name: 'Viewer' }).click();
+  await expect(role).toHaveValue('Viewer');
+
+  const bold = page.getByRole('button', { name: 'Bold' });
+  await bold.click();
+  await expect(bold).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: 'Advanced options' }).click();
+  await expect(page.getByText('Extra configuration belongs here.')).toBeVisible();
+});

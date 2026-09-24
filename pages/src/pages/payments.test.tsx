@@ -80,6 +80,37 @@ describe('Stripe payment compositions', () => {
     expect(stripe.confirmPayment).not.toHaveBeenCalled();
   });
 
+  it('shows validation and Stripe confirmation errors without reporting success', async () => {
+    const user = userEvent.setup();
+    const onError = vi.fn();
+    const onSuccess = vi.fn();
+    stripe.submit.mockResolvedValueOnce({
+      error: { message: 'Enter card details' },
+    });
+    render(
+      <StripePaymentForm
+        returnUrl="https://example.com/payment-complete"
+        onError={onError}
+        onSuccess={onSuccess}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Pay now' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter card details');
+    expect(stripe.confirmPayment).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    stripe.submit.mockResolvedValueOnce({});
+    stripe.confirmPayment.mockResolvedValueOnce({
+      error: { message: 'Card was declined' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Pay now' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Card was declined');
+    expect(onError).toHaveBeenCalledWith('Card was declined');
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it('renders only the requested payment page sections', () => {
     render(
       <StripePaymentPage

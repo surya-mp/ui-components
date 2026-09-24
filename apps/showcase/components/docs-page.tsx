@@ -13,6 +13,8 @@ import {
   CardDescription,
   CardTitle,
   Checkbox,
+  Collapsible,
+  Combobox,
   Command,
   ConfirmActionDialog,
   Container,
@@ -34,25 +36,34 @@ import {
   FileUpload,
   FormField,
   Input,
+  InputOTP,
   LoadingState,
   Pagination,
   PasswordInput,
   Popover,
   Progress,
+  RadioGroup,
   SearchableTable,
   Select,
+  SegmentedControl,
   Skeleton,
+  ScrollArea,
   Stack,
   Switch,
+  ToastProvider,
+  Toggle,
   Tabs,
   Textarea,
   Tooltip,
+  useToast,
   type DataColumn,
 } from '@sypra-ui/ui';
 import {
   ApiKeyManager,
   BillingPage,
   LoginPage,
+  OrganizationPage,
+  PaymentStatusPage,
   ProfilePage,
 } from '@sypra-ui/pages';
 
@@ -199,11 +210,46 @@ function DocSection({
               <option>Starter</option>
               <option>Pro</option>
             </Select>
+            <Combobox
+              label="Role"
+              options={[
+                { value: 'admin', label: 'Admin' },
+                { value: 'viewer', label: 'Viewer' },
+              ]}
+            />
+            <RadioGroup
+              name="access-demo"
+              label="Access"
+              defaultValue="read"
+              orientation="horizontal"
+              options={[
+                { value: 'read', label: 'Read' },
+                { value: 'write', label: 'Write' },
+              ]}
+            />
+            <InputOTP length={4} />
+            <div className="flex flex-wrap gap-2">
+              <Toggle>Bold</Toggle>
+              <SegmentedControl
+                label="View"
+                options={[
+                  { value: 'list', label: 'List' },
+                  { value: 'grid', label: 'Grid' },
+                ]}
+              />
+            </div>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox /> Send product updates
             </label>
             <Switch aria-label="Enable notifications" />
             <FileUpload label="Upload a logo" onFiles={() => undefined} />
+            <Collapsible title="Advanced options">
+              Extra configuration belongs here.
+            </Collapsible>
+            <ScrollArea className="max-h-20 rounded border p-2 text-sm">
+              This constrained area scrolls when its content exceeds the
+              available space.
+            </ScrollArea>
           </div>
           {snippet(
             `<FormField label="Email" htmlFor="email">\n  <Input id="email" value={email} onChange={...} />\n</FormField>`,
@@ -414,6 +460,9 @@ function DocSection({
               title="No projects yet"
               action={<Button size="sm">Create project</Button>}
             />
+            <ToastProvider>
+              <ToastDemo />
+            </ToastProvider>
           </Stack>
         </Demo>
       </Doc>
@@ -497,12 +546,54 @@ function DocSection({
           )}
         </Demo>
         <Demo title="Stripe Elements payments">
-          <Alert title="Server-owned payment creation">
-            Create the payment or subscription server-side and pass only its
-            client secret to the browser. Do not expose a Stripe secret key.
+          <Alert title="Complete server-owned contract">
+            Use POST /subscribe to create a subscription, POST /portal for the
+            Billing Portal, and POST /webhook to verify Stripe events. Return
+            the invoice confirmation_secret client secret first, with the
+            payment_intent client secret only as a compatibility fallback.
           </Alert>
           {snippet(
-            `const stripe = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);\n\n<StripePaymentPage\n  payment={{ stripe, options: { clientSecret: paymentClientSecret }, returnUrl }}\n  billing={{ stripe, options: { clientSecret: subscriptionClientSecret }, returnUrl }}\n  sections={{ billing: false }}\n/>`,
+            `type StripeSubscriptionApi = {\n  '/subscribe': { request: StripeSubscribeRequest; response: StripeSubscribeResponse };\n  '/portal': { request: StripePortalRequest; response: StripePortalResponse };\n  '/webhook': { event: StripeWebhookEvent; response: { received: true } };\n};\n\n<StripePaymentPage\n  billing={{ stripe, options: { clientSecret }, returnUrl }}\n  sections={{ payment: false }}\n/>`,
+          )}
+        </Demo>
+        <Demo title="Completion and system status">
+          <PaymentStatusPage
+            as="div"
+            status="succeeded"
+            actions={<Button>View billing</Button>}
+          />
+          {snippet(
+            `<PaymentStatusPage status="processing" actions={<Button>View billing</Button>} />\n<NotFoundPage actions={<a href="/">Back home</a>} />\n<OfflinePage actions={<Button onClick={retry}>Try again</Button>} />`,
+          )}
+        </Demo>
+        <Demo title="Customer organization members">
+          <OrganizationPage
+            organization={{
+              id: 'org_1',
+              name: 'Acme',
+              slug: 'acme',
+              plan: 'Pro',
+            }}
+            members={users.map((user) => ({
+              ...user,
+              email: `${(user.name.split(' ')[0] ?? 'member').toLowerCase()}@acme.example`,
+            }))}
+            invitations={[
+              {
+                id: 'invite_1',
+                email: 'mina@example.com',
+                role: 'Member',
+                expiresAt: 'Friday',
+              },
+            ]}
+            onInvite={() => undefined}
+            onChangeRole={() => undefined}
+            onRemoveMember={() => undefined}
+            onResendInvitation={() => undefined}
+            onRevokeInvitation={() => undefined}
+          />
+          {snippet(
+            `<OrganizationPage organization={organization} members={members}\n  invitations={invitations} onInvite={inviteMember}\n  onChangeRole={updateMemberRole} onRemoveMember={removeMember} />`,
           )}
         </Demo>
       </Doc>
@@ -527,6 +618,15 @@ function DocSection({
         )}
       </Demo>
     </Doc>
+  );
+}
+
+function ToastDemo() {
+  const { toast } = useToast();
+  return (
+    <Button variant="outline" onClick={() => toast({ title: 'Changes saved' })}>
+      Show toast
+    </Button>
   );
 }
 

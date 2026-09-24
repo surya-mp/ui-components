@@ -1,6 +1,6 @@
 {
   "name": "@sypra-ui/ui",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Accessible, themeable React UI primitives.",
   "license": "MIT",
   "repository": {
@@ -43,6 +43,7 @@
     "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src && prettier --check src"
   },
   "peerDependencies": {
@@ -53,6 +54,7 @@
     "@testing-library/react": "^16.1.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
+    "@vitest/coverage-v8": "^2.1.8",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "jsdom": "^25.0.1",

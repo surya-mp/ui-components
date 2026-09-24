@@ -89,3 +89,75 @@ application.
 together. `SettingRow` provides an aligned title, description, and trailing
 action for settings cards. Use `ConfirmActionDialog` for destructive actions
 that need an explicit confirmation.
+
+## Advanced primitives
+
+Use `Combobox` for searchable option lists, `RadioGroup` for a labeled choice,
+and `InputOTP` for verification codes. `Toggle` and `SegmentedControl` are
+controlled or uncontrolled compact selection controls. `Collapsible` and
+`ScrollArea` are layout primitives. Wrap an application in `ToastProvider` and
+call `useToast().toast()` from a descendant to show queued notifications.
+
+```tsx
+import { Combobox, ToastProvider, useToast } from '@sypra-ui/ui';
+
+<Combobox
+  label="Role"
+  options={[{ value: 'admin', label: 'Admin' }]}
+  onValueChange={saveRole}
+/>;
+
+function SaveButton() {
+  const { toast } = useToast();
+  return <button onClick={() => toast({ title: 'Saved' })}>Save</button>;
+}
+
+<ToastProvider>
+  <SaveButton />
+</ToastProvider>;
+```
+
+### Primitive reference
+
+All interactive primitives support either controlled state (`value`/`pressed`/
+`open` plus a change callback) or local state through their corresponding
+`default…` prop. They accept `className` for local Tailwind customization.
+
+| Component | Use it for | Important props |
+| --- | --- | --- |
+| `Combobox` | Searchable selection | `options`, `value`, `defaultValue`, `onValueChange`, `name`, `label` or `ariaLabel` |
+| `RadioGroup` | One labelled choice | `name`, `options`, `value`, `defaultValue`, `onValueChange`, `error` |
+| `InputOTP` | Verification codes | `length`, `numeric`, `value`, `defaultValue`, `onValueChange`, `onComplete`, `name` |
+| `Toggle` | A single pressed/unpressed option | `pressed`, `defaultPressed`, `onPressedChange` |
+| `SegmentedControl` | A compact exclusive choice | `options`, `value`, `defaultValue`, `onValueChange`, `label` |
+| `Collapsible` | Optional or advanced content | `title`, `open`, `defaultOpen`, `onOpenChange` |
+| `ScrollArea` | Native, contained scrolling | Standard `<div>` props and `className` such as `max-h-80` |
+| `ToastProvider` | App-wide transient feedback | `limit`, `duration`, `className`; use `useToast()` in descendants |
+
+```tsx
+import {
+  Collapsible,
+  InputOTP,
+  RadioGroup,
+  SegmentedControl,
+  Toggle,
+} from '@sypra-ui/ui';
+
+<RadioGroup
+  name="access"
+  label="Access"
+  defaultValue="read"
+  options={[
+    { value: 'read', label: 'Read only' },
+    { value: 'write', label: 'Read and write' },
+  ]}
+/>
+<InputOTP length={6} name="verificationCode" onComplete={verifyCode} />
+<Toggle defaultPressed onPressedChange={setBold}>Bold</Toggle>
+<SegmentedControl label="Layout" options={layoutOptions} onValueChange={setLayout} />
+<Collapsible title="Advanced options">…</Collapsible>
+```
+
+`InputOTP` filters pasted input to digits by default; set `numeric={false}` for
+alphanumeric codes. `Combobox` needs either a visible `label` or `ariaLabel`.
+`ToastProvider` must wrap every component that calls `useToast()`.

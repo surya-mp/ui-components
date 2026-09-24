@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   AccountSettingsPage,
   ApiKeyCard,
+  CreateApiKeyDialog,
   AuthProviderButton,
   BillingPage,
   DangerZone,
@@ -93,7 +94,10 @@ describe('page compositions', () => {
     const onDeleteAccount = vi.fn();
     render(<DangerZone onDeleteAccount={onDeleteAccount} />);
 
-    const button = screen.getByRole('button', { name: 'Delete account' });
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    const button = screen.getByRole('button', {
+      name: 'Confirm delete account',
+    });
     const confirmation = screen.getByLabelText(/Type DELETE/);
     expect(button).toBeDisabled();
     expect(confirmation).toHaveAttribute('placeholder', 'DELETE');
@@ -230,6 +234,34 @@ describe('page compositions', () => {
 
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.queryByText('Security')).not.toBeInTheDocument();
+  });
+
+  it('uses OTP verification and radio API-key permissions in settings flows', async () => {
+    const user = userEvent.setup();
+    const onVerify = vi.fn();
+    const onCreate = vi.fn();
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <SecurityPage twoFactorVerification={{ onVerify, length: 4 }} />,
+    );
+    await user.type(screen.getByLabelText('Digit 1'), '1234');
+    expect(onVerify).toHaveBeenCalledWith('1234');
+
+    rerender(
+      <CreateApiKeyDialog
+        open
+        onOpenChange={onOpenChange}
+        onCreate={onCreate}
+      />,
+    );
+    await user.type(screen.getByLabelText('Name'), 'Deploy key');
+    await user.click(screen.getByRole('radio', { name: /Read and write/ }));
+    await user.click(screen.getByRole('button', { name: 'Create key' }));
+    expect(onCreate).toHaveBeenCalledWith({
+      name: 'Deploy key',
+      permissions: ['read', 'write'],
+    });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it('renders only selected composition sections', () => {

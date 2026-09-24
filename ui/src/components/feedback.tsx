@@ -37,11 +37,13 @@ export function Toast({
   title,
   description,
   action,
+  onDismiss,
   className,
 }: {
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
+  onDismiss?: () => void;
   className?: string;
 }) {
   return (
@@ -61,6 +63,16 @@ export function Toast({
         )}
       </div>
       <div className="shrink-0">{action}</div>
+      {onDismiss && (
+        <button
+          type="button"
+          aria-label="Dismiss notification"
+          className="rui-focus -mr-1 -mt-1 shrink-0 rounded px-1 text-[hsl(var(--rui-muted-foreground))] hover:text-[hsl(var(--rui-foreground))]"
+          onClick={onDismiss}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

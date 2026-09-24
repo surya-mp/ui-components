@@ -18,6 +18,8 @@ pnpm dev
 ```
 
 For a release-style validation, run `pnpm build && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e`.
+For HTML and terminal coverage reports, run `pnpm --filter @sypra-ui/ui test:coverage`
+and `pnpm --filter @sypra-ui/pages test:coverage`.
 
 The packages use Tailwind utilities and semantic `--rui-*` CSS variables. See
 the package READMEs for the required Tailwind content paths and for global or

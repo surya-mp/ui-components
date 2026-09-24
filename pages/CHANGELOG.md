@@ -1,5 +1,21 @@
 # @sypra-ui/pages
 
+## 0.7.0
+
+### Minor Changes
+
+- Add optional typed contracts and complete server integration examples for
+  Stripe subscriptions and the Billing Portal.
+- Add reusable completion and system status pages.
+- Add customer-organization member and invitation page compositions.
+- Add V8 coverage reporting and behavioral tests for billing, marketing,
+  payments, organization, status, and settings compositions.
+
+### Patch Changes
+
+- Updated dependencies
+  - @sypra-ui/ui@0.3.0
+
 ## 0.6.0
 
 ### Major Changes
