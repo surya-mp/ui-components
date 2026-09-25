@@ -592,6 +592,7 @@ function DocSection({
               ]}
               onMarkRead={() => undefined}
               onMarkAllRead={() => undefined}
+              onViewAll={() => undefined}
             />
           </div>
           <AuditLogPage
@@ -606,7 +607,7 @@ function DocSection({
             ]}
           />
           {snippet(
-            `<NotificationBell notifications={notifications} onMarkRead={markRead} />\n<AuditLogPage entries={events} onLoadMore={loadMoreEvents} />`,
+            `<NotificationBell\n  notifications={notifications}\n  onMarkRead={markRead}\n  onViewAll={() => router.push('/notifications')}\n/>\n\n<NotificationsPage standalone notifications={notifications} />`,
           )}
         </Demo>
         <Demo title="Completion and system status">

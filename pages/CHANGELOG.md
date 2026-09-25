@@ -16,6 +16,8 @@
   preserving root package imports.
 - Split every domain widget into a focused source module; page modules now
   compose widgets without duplicating their implementations.
+- Add a bell-popup “Show all notifications” callback and an opt-in standalone
+  notifications page shell for application routes.
 
 ## 0.7.1
 

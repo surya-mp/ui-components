@@ -82,9 +82,11 @@ export type {
   SupportRequest,
 } from './support-form';
 export { NotificationBell } from './notification-bell';
+export { NotificationBellButton } from './notification-bell-button';
 export { NotificationItem } from './notification-item';
 export { NotificationList } from './notification-list';
 export { NotificationPreferences } from './notification-preferences';
+export { NotificationPreview } from './notification-preview';
 export type { AppNotification } from './notification-item';
 export type { NotificationPreference } from './notification-preferences';
 export { AuditLogItem } from './audit-log-item';

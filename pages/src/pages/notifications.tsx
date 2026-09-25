@@ -1,5 +1,12 @@
 import { type ReactNode } from 'react';
-import { Card, Section, Stack } from '@sypra-ui/ui';
+import {
+  Card,
+  Container,
+  PageHeader,
+  PageShell,
+  Section,
+  Stack,
+} from '@sypra-ui/ui';
 import { NotificationList } from '../widgets/notification-list';
 import {
   NotificationPreferences,
@@ -15,6 +22,10 @@ export function NotificationsPage({
   onPreferenceChange,
   sections,
   children,
+  standalone = false,
+  title = 'Notifications',
+  description = 'Review updates from your account.',
+  as,
 }: {
   notifications: AppNotification[];
   preferences?: NotificationPreference[];
@@ -26,18 +37,23 @@ export function NotificationsPage({
   ) => void;
   sections?: { notifications?: boolean; preferences?: boolean };
   children?: ReactNode;
+  /** Add a complete page shell when rendering at an application route. */
+  standalone?: boolean;
+  title?: ReactNode;
+  description?: ReactNode;
+  as?: 'main' | 'div';
 }) {
   const visibleSections = {
     notifications: true,
     preferences: Boolean(preferences && onPreferenceChange),
     ...sections,
   };
-  return (
+  const content = (
     <Stack gap={8}>
       {visibleSections.notifications && (
         <Section
-          title="Notifications"
-          description="Review updates from your account."
+          title={standalone ? undefined : title}
+          description={standalone ? undefined : description}
         >
           <Card className="p-0">
             <NotificationList
@@ -56,5 +72,14 @@ export function NotificationsPage({
       )}
       {children}
     </Stack>
+  );
+  if (!standalone) return content;
+  return (
+    <PageShell as={as}>
+      <Container className="py-8">
+        <PageHeader title={title} description={description} />
+        <div className="pt-6">{content}</div>
+      </Container>
+    </PageShell>
   );
 }

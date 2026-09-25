@@ -88,6 +88,20 @@ same way: fetch and retain events in your backend, then pass them in.
 <AuditLogPage entries={events} onLoadMore={loadMoreEvents} />
 ```
 
+The bell popup renders the first five supplied notifications (pass them in
+newest-first order) and retains the unread count for the complete collection.
+Use `onViewAll` to connect it to your router, and render the same page at that
+route with `standalone` enabled:
+
+```tsx
+<NotificationBell
+  notifications={notifications}
+  onViewAll={() => router.push('/notifications')}
+/>
+
+<NotificationsPage standalone notifications={notifications} />
+```
+
 ## Stripe Elements payments
 
 `@sypra-ui/pages` exposes Stripe Elements forms but never creates an intent or

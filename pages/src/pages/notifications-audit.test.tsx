@@ -10,6 +10,7 @@ describe('notifications, audit logs, and API-key refinements', () => {
     const onMarkRead = vi.fn();
     const onMarkAllRead = vi.fn();
     const onPreferenceChange = vi.fn();
+    const onViewAll = vi.fn();
     const notification = {
       id: 'notice_1',
       title: 'Invoice paid',
@@ -22,6 +23,7 @@ describe('notifications, audit logs, and API-key refinements', () => {
           notifications={[notification]}
           onMarkRead={onMarkRead}
           onMarkAllRead={onMarkAllRead}
+          onViewAll={onViewAll}
         />
         <NotificationsPage
           notifications={[]}
@@ -37,15 +39,51 @@ describe('notifications, audit logs, and API-key refinements', () => {
     await user.click(screen.getByRole('button', { name: 'Mark read' }));
     await user.click(screen.getByRole('button', { name: 'Mark all as read' }));
     await user.click(
+      screen.getByRole('button', { name: 'Show all notifications' }),
+    );
+    await user.click(
       screen.getByRole('checkbox', { name: 'Enable Billing updates' }),
     );
 
     expect(onMarkRead).toHaveBeenCalledWith(notification);
     expect(onMarkAllRead).toHaveBeenCalledOnce();
+    expect(onViewAll).toHaveBeenCalledOnce();
     expect(onPreferenceChange).toHaveBeenCalledWith(
       { id: 'billing', label: 'Billing updates', enabled: true },
       false,
     );
+  });
+
+  it('renders a complete standalone notifications route when requested', () => {
+    render(<NotificationsPage standalone notifications={[]} />);
+
+    expect(screen.getByRole('main')).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Notifications' }),
+    ).toBeVisible();
+  });
+
+  it('limits the bell popup to the five newest supplied notifications', async () => {
+    const user = userEvent.setup();
+    const notifications = Array.from({ length: 6 }, (_, index) => ({
+      id: `notice_${index}`,
+      title: `Notice ${index + 1}`,
+      read: false,
+    }));
+    render(
+      <NotificationBell
+        notifications={notifications}
+        onViewAll={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Notifications/ }));
+
+    expect(screen.getByText('Notice 5')).toBeVisible();
+    expect(screen.queryByText('Notice 6')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Show all notifications' }),
+    ).toBeVisible();
   });
 
   it('renders application-owned audit events and asks for more history', async () => {
