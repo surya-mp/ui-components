@@ -27,11 +27,9 @@ vi.mock('@stripe/react-stripe-js', async () => {
   };
 });
 
-import {
-  StripeBillingForm,
-  StripePaymentForm,
-  StripePaymentPage,
-} from './payments';
+import { StripeBillingForm } from '../widgets/stripe-billing-form';
+import { StripePaymentForm } from '../widgets/stripe-payment-form';
+import { StripePaymentPage } from './payments';
 
 describe('Stripe payment compositions', () => {
   beforeEach(() => {

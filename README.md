@@ -6,7 +6,8 @@ Frontend-only React + TypeScript components and SaaS page compositions, organize
 
 - `@sypra-ui/ui` — accessible primitives, overlay, navigation, feedback, layout, and data components.
 - `@sypra-ui/pages` — callback/data-driven auth, settings, security, API key, billing, and marketing compositions.
-- `@sypra-ui/showcase` — the interactive visual documentation app.
+- `apps/showcase` — private interactive visual documentation and test app;
+  it is not published.
 
 ## Run locally
 

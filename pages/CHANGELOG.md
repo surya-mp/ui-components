@@ -1,5 +1,22 @@
 # @sypra-ui/pages
 
+## 0.8.0
+
+### Minor Changes
+
+- Add configurable `SupportForm` and `SupportPage` contact compositions with
+  optional topics and attachments.
+- Add persistent notification, notification-preference, and audit-log page
+  compositions.
+- Add optional API-key expiration and a one-time raw-secret dialog when the
+  application returns a newly created key.
+- Add callback-driven reset-password form and page compositions for
+  email/password applications.
+- Add the `@sypra-ui/pages/widgets` entry point for domain widgets while
+  preserving root package imports.
+- Split every domain widget into a focused source module; page modules now
+  compose widgets without duplicating their implementations.
+
 ## 0.7.1
 
 ### Patch Changes

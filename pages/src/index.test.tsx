@@ -15,6 +15,7 @@ import {
   ProfileSummary,
   PricingCard,
   PricingTable,
+  ResetPasswordPage,
   SecurityPage,
   SessionCard,
   UsageMetric,
@@ -87,6 +88,32 @@ describe('page compositions', () => {
     expect(
       screen.getByRole('button', { name: 'Continue with GitHub' }),
     ).toBeInTheDocument();
+  });
+
+  it('submits a matching reset password and carries the application token', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <ResetPasswordPage as="div" token="reset-token" onSubmit={onSubmit} />,
+    );
+
+    await user.type(screen.getByLabelText('New password'), 'new-secret');
+    await user.type(screen.getByLabelText('Confirm new password'), 'different');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Passwords do not match.',
+    );
+    await user.clear(screen.getByLabelText('Confirm new password'));
+    await user.type(
+      screen.getByLabelText('Confirm new password'),
+      'new-secret',
+    );
+    await user.click(screen.getByRole('button', { name: 'Reset password' }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      password: 'new-secret',
+      confirmation: 'new-secret',
+      token: 'reset-token',
+    });
   });
 
   it('requires confirmation before destructive account actions', async () => {

@@ -18,6 +18,25 @@ import {
   Tooltip,
   type DataColumn,
 } from './index';
+import {
+  Button as PrimitiveButton,
+  Input as PrimitiveInput,
+} from './primitives';
+import { FormField as WidgetFormField } from './widgets';
+
+describe('separate public entry points', () => {
+  it('keeps primitives and compound widgets independently importable', () => {
+    render(
+      <WidgetFormField label="Workspace name" htmlFor="workspace-name">
+        <PrimitiveInput id="workspace-name" />
+        <PrimitiveButton>Save</PrimitiveButton>
+      </WidgetFormField>,
+    );
+
+    expect(screen.getByLabelText('Workspace name')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeVisible();
+  });
+});
 
 describe('DataTable', () => {
   it('renders typed custom cells without domain assumptions', () => {

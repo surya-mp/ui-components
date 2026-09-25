@@ -29,6 +29,65 @@ the color palette and shape. Page components remain data-and-callback driven,
 so your application retains ownership of authentication, routing, APIs, and
 payments.
 
+## Page and widget boundaries
+
+Use `@sypra-ui/ui` for generic primitives and generic widgets such as dialogs,
+tables, file upload, and comboboxes. Use `@sypra-ui/pages/widgets` for
+SaaS-domain widgets that accept application data and callbacks, without
+supplying a full layout. Use `@sypra-ui/pages` for complete compositions.
+
+The source follows the same boundary: `ui/src/components` contains generic UI,
+`pages/src/widgets` contains one reusable domain widget per file, and
+`pages/src/pages` contains layout compositions only. The `widgets` barrel is
+an import convenience, not the implementation location.
+
+```tsx
+import { NotificationBell, SupportForm } from '@sypra-ui/pages/widgets';
+import { NotificationsPage, SupportPage } from '@sypra-ui/pages';
+```
+
+## Support and contact
+
+`SupportForm` is the composable form; `SupportPage` adds a centered, responsive
+page layout. Name, email, subject, and message are shown by default. Add
+application-specific topics or attachments only when needed:
+
+```tsx
+import { SupportPage } from '@sypra-ui/pages';
+
+<SupportPage
+  categories={[
+    { value: 'account', label: 'Account' },
+    { value: 'billing', label: 'Billing' },
+  ]}
+  fields={{ attachments: true }}
+  attachmentAccept="image/*,.pdf"
+  onSubmit={(ticket) => createSupportTicket(ticket)}
+/>;
+```
+
+For signed-in users, hide prefilled fields with
+`fields={{ name: false, email: false, subject: false }}`. Upload files and
+submit the ticket in `onSubmit`; the package intentionally does not send data
+or retain attachments.
+
+## Notifications and activity
+
+`NotificationBell`, `NotificationList`, and `NotificationsPage` display
+application-stored notifications. Read state and preferences stay controlled by
+your application callbacks. `AuditLogViewer` and `AuditLogPage` render the
+same way: fetch and retain events in your backend, then pass them in.
+
+```tsx
+<NotificationBell
+  notifications={notifications}
+  onMarkRead={(notification) => markNotificationRead(notification.id)}
+  onMarkAllRead={markAllNotificationsRead}
+/>
+
+<AuditLogPage entries={events} onLoadMore={loadMoreEvents} />
+```
+
 ## Stripe Elements payments
 
 `@sypra-ui/pages` exposes Stripe Elements forms but never creates an intent or
@@ -115,7 +174,7 @@ const { clientSecret } = await fetch('/api/payment-intent', {
     paymentElementOptions: { wallets: { applePay: 'auto', googlePay: 'auto' } },
     returnUrl: `${window.location.origin}/checkout/complete`,
   }}
-/>
+/>;
 ```
 
 Create subscriptions with Stripe Prices when that fits your billing model; use
@@ -425,9 +484,10 @@ enforcing ownership rules.
 
 `SecurityPage` uses `InputOTP` when you supply `twoFactorVerification`; the
 completed code is delivered to your callback. `CreateApiKeyDialog` uses a
-radio group for the built-in read-only/read-and-write choices. These controls
-remain frontend-only: validate the code and grant the requested key scope on
-your server.
+radio group for the built-in read-only/read-and-write choices and an optional
+native expiry date. Return `{ secret }` from `onCreate` to display the raw key
+once. These controls remain frontend-only: validate the code, enforce expiry,
+and grant the requested key scope on your server.
 
 ```tsx
 <SecurityPage
@@ -438,7 +498,9 @@ your server.
 
 <ApiKeyManager
   keys={keys}
-  onCreate={({ name, permissions }) => createKey({ name, permissions })}
+  onCreate={({ name, permissions, expiresAt }) =>
+    createKey({ name, permissions, expiresAt })
+  }
   onRevoke={(id) => revokeKey(id)}
 />
 ```
@@ -448,9 +510,12 @@ your server.
 `LoginPage`, `SignupPage`, `AuthModal`, and the unwrapped `AuthForm` accept
 `authMethods`. Enable any combination of email/password, Google, and GitHub.
 The library calls your handler and never owns OAuth client IDs, redirects, or
-callback exchanges.
+callback exchanges. Use `ForgotPasswordPage` and `ResetPasswordPage` only when
+your application enables email/password authentication.
 
 ```tsx
+import { LoginPage, ResetPasswordPage } from '@sypra-ui/pages';
+
 const startOAuth = (provider: string) => {
   window.location.assign(`/auth/${provider}`);
 };
@@ -463,6 +528,11 @@ const startOAuth = (provider: string) => {
 
 // Google only (or use 'github')
 <LoginPage authMethods={{ google: true }} onProviderLogin={startOAuth} />;
+
+<ResetPasswordPage
+  token={resetToken}
+  onSubmit={({ password, token }) => resetPassword({ password, token })}
+/>;
 
 // Email/password, Google, and GitHub
 <LoginPage
@@ -515,11 +585,15 @@ Use exported components directly when you need a custom layout:
 
 - Auth: `AuthProviderButton`, `AuthDivider`
 - Account: `ProfileSummary`, `SessionCard`, `ApiKeyCard`
+- Notifications: `NotificationBell`, `NotificationList`, `NotificationItem`,
+  `NotificationPreferences`, `NotificationsPage`
+- Activity: `AuditLogItem`, `AuditLogViewer`, `AuditLogPage`
 - Billing: `SubscriptionCard`, `PaymentMethodCard`, `InvoiceTable`,
   `PricingCard`, `UsageMetric`
 - Payments: `StripeElementsProvider`, `StripePaymentForm`,
   `StripeBillingForm`, `StripePaymentWidget`, `StripeBillingWidget`,
   `StripePaymentPage`
+- Support: `SupportForm`, `SupportPage`
 - Status: `StatusPage`, `PaymentStatusPage`, `OAuthStatusPage`,
   `EmailVerificationPage`, `InvitationStatusPage`, `AccessDeniedPage`,
   `NotFoundPage`, `ServerErrorPage`, `MaintenancePage`, `OfflinePage`

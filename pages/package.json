@@ -1,6 +1,6 @@
 {
   "name": "@sypra-ui/pages",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Data-and-callback driven React page compositions.",
   "license": "MIT",
   "repository": {
@@ -11,8 +11,10 @@
   "homepage": "https://github.com/surya-mp/ui-components#readme",
   "bugs": "https://github.com/surya-mp/ui-components/issues",
   "keywords": [
+    "audit",
     "auth",
     "billing",
+    "notifications",
     "pages",
     "payments",
     "react",
@@ -29,6 +31,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./widgets": {
+      "types": "./dist/widgets/index.d.ts",
+      "import": "./dist/widgets/index.js"
     }
   },
   "files": [
@@ -37,7 +43,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.tsx --format esm --dts --sourcemap --external react --external react-dom --external @sypra-ui/ui --external @stripe/react-stripe-js --external @stripe/stripe-js --clean",
+    "build": "tsup src/index.tsx src/widgets/index.ts --format esm --dts --sourcemap --external react --external react-dom --external @sypra-ui/ui --external @stripe/react-stripe-js --external @stripe/stripe-js --clean",
     "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

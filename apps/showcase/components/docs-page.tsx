@@ -59,13 +59,16 @@ import {
   type DataColumn,
 } from '@sypra-ui/ui';
 import {
-  ApiKeyManager,
+  AuditLogPage,
   BillingPage,
   LoginPage,
   OrganizationPage,
   PaymentStatusPage,
   ProfilePage,
+  ResetPasswordPage,
+  SupportPage,
 } from '@sypra-ui/pages';
+import { ApiKeyManager, NotificationBell } from '@sypra-ui/pages/widgets';
 
 const sections = [
   ['foundations', 'Foundations'],
@@ -512,6 +515,9 @@ function DocSection({
                 onProviderLogin={() => undefined}
               />
             </div>
+            <div className="max-w-md">
+              <ResetPasswordPage as="div" onSubmit={() => undefined} />
+            </div>
             <ProfilePage
               profile={{
                 firstName: 'Surya',
@@ -554,6 +560,53 @@ function DocSection({
           </Alert>
           {snippet(
             `type StripeSubscriptionApi = {\n  '/subscribe': { request: StripeSubscribeRequest; response: StripeSubscribeResponse };\n  '/portal': { request: StripePortalRequest; response: StripePortalResponse };\n  '/webhook': { event: StripeWebhookEvent; response: { received: true } };\n};\n\n<StripePaymentPage\n  billing={{ stripe, options: { clientSecret }, returnUrl }}\n  sections={{ payment: false }}\n/>`,
+          )}
+        </Demo>
+        <Demo title="Support and contact">
+          <SupportPage
+            as="div"
+            title="Contact the team"
+            description="Share a question, problem, or product idea."
+            categories={[
+              { value: 'account', label: 'Account' },
+              { value: 'billing', label: 'Billing' },
+              { value: 'technical', label: 'Technical issue' },
+            ]}
+            fields={{ attachments: true }}
+            onSubmit={() => undefined}
+          />
+          {snippet(
+            `<SupportPage categories={topics} fields={{ attachments: true }}\n  onSubmit={(ticket) => createTicket(ticket)} />`,
+          )}
+        </Demo>
+        <Demo title="Notifications and audit activity">
+          <div className="flex justify-end">
+            <NotificationBell
+              notifications={[
+                {
+                  id: 'billing-paid',
+                  title: 'Invoice paid',
+                  description: 'Your September invoice was paid.',
+                  createdAt: 'Today',
+                },
+              ]}
+              onMarkRead={() => undefined}
+              onMarkAllRead={() => undefined}
+            />
+          </div>
+          <AuditLogPage
+            entries={[
+              {
+                id: 'key-created',
+                action: 'API key created',
+                actor: 'Surya Mandava',
+                resource: 'Production key',
+                occurredAt: 'Today at 10:30',
+              },
+            ]}
+          />
+          {snippet(
+            `<NotificationBell notifications={notifications} onMarkRead={markRead} />\n<AuditLogPage entries={events} onLoadMore={loadMoreEvents} />`,
           )}
         </Demo>
         <Demo title="Completion and system status">

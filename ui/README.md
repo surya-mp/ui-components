@@ -90,6 +90,25 @@ together. `SettingRow` provides an aligned title, description, and trailing
 action for settings cards. Use `ConfirmActionDialog` for destructive actions
 that need an explicit confirmation.
 
+## Primitives and widgets
+
+Use the explicit entry points when you want the boundary reflected in imports:
+
+```tsx
+import { Button, Input, Stack } from '@sypra-ui/ui/primitives';
+import { FormField, DataTable, Dialog } from '@sypra-ui/ui/widgets';
+```
+
+Primitives provide markup and styling foundations. Widgets compose primitives
+into common, accessible interactions. `@sypra-ui/ui` continues to export both
+for backward compatibility and convenience.
+
+Each primitive has a focused source module, while compound helpers remain
+available for faster composition. Use `Input`, `Label`, and `Button` directly
+when you need complete markup control; use `FormField`, `DataTable`, or the
+compound dialog API when the standard structure fits. The family files in
+`src/components` are export barrels, preserving stable public imports.
+
 ## Advanced primitives
 
 Use `Combobox` for searchable option lists, `RadioGroup` for a labeled choice,
@@ -123,16 +142,16 @@ All interactive primitives support either controlled state (`value`/`pressed`/
 `open` plus a change callback) or local state through their corresponding
 `default…` prop. They accept `className` for local Tailwind customization.
 
-| Component | Use it for | Important props |
-| --- | --- | --- |
-| `Combobox` | Searchable selection | `options`, `value`, `defaultValue`, `onValueChange`, `name`, `label` or `ariaLabel` |
-| `RadioGroup` | One labelled choice | `name`, `options`, `value`, `defaultValue`, `onValueChange`, `error` |
-| `InputOTP` | Verification codes | `length`, `numeric`, `value`, `defaultValue`, `onValueChange`, `onComplete`, `name` |
-| `Toggle` | A single pressed/unpressed option | `pressed`, `defaultPressed`, `onPressedChange` |
-| `SegmentedControl` | A compact exclusive choice | `options`, `value`, `defaultValue`, `onValueChange`, `label` |
-| `Collapsible` | Optional or advanced content | `title`, `open`, `defaultOpen`, `onOpenChange` |
-| `ScrollArea` | Native, contained scrolling | Standard `<div>` props and `className` such as `max-h-80` |
-| `ToastProvider` | App-wide transient feedback | `limit`, `duration`, `className`; use `useToast()` in descendants |
+| Component          | Use it for                        | Important props                                                                     |
+| ------------------ | --------------------------------- | ----------------------------------------------------------------------------------- |
+| `Combobox`         | Searchable selection              | `options`, `value`, `defaultValue`, `onValueChange`, `name`, `label` or `ariaLabel` |
+| `RadioGroup`       | One labelled choice               | `name`, `options`, `value`, `defaultValue`, `onValueChange`, `error`                |
+| `InputOTP`         | Verification codes                | `length`, `numeric`, `value`, `defaultValue`, `onValueChange`, `onComplete`, `name` |
+| `Toggle`           | A single pressed/unpressed option | `pressed`, `defaultPressed`, `onPressedChange`                                      |
+| `SegmentedControl` | A compact exclusive choice        | `options`, `value`, `defaultValue`, `onValueChange`, `label`                        |
+| `Collapsible`      | Optional or advanced content      | `title`, `open`, `defaultOpen`, `onOpenChange`                                      |
+| `ScrollArea`       | Native, contained scrolling       | Standard `<div>` props and `className` such as `max-h-80`                           |
+| `ToastProvider`    | App-wide transient feedback       | `limit`, `duration`, `className`; use `useToast()` in descendants                   |
 
 ```tsx
 import {

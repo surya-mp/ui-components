@@ -1,5 +1,14 @@
 # @sypra-ui/ui
 
+## 0.4.0
+
+### Minor Changes
+
+- Add `@sypra-ui/ui/primitives` and `@sypra-ui/ui/widgets` entry points.
+- Split form, display, layout, navigation, and feedback implementations into
+  focused component modules while retaining compound composition helpers and
+  root-package imports.
+
 ## 0.3.0
 
 ### Minor Changes

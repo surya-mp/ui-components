@@ -5,4 +5,8 @@ export * from './pages/marketing';
 export * from './pages/payments';
 export * from './pages/organization';
 export * from './pages/status';
+export * from './pages/support';
+export * from './pages/notifications';
+export * from './pages/audit-log';
 export * from './stripe-contracts';
+export * from './widgets';
