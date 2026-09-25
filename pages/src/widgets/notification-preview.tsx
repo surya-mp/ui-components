@@ -28,6 +28,7 @@ export function NotificationPreview({
         notifications={notifications.slice(0, Math.max(0, previewLimit))}
         onMarkRead={onMarkRead}
         onMarkAllRead={onMarkAllRead}
+        compact
       />
       {onViewAll && (
         <div className="border-t border-[hsl(var(--rui-border))] p-2">

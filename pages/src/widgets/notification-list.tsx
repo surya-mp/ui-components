@@ -8,12 +8,15 @@ export function NotificationList({
   onMarkAllRead,
   emptyMessage = 'You are all caught up.',
   className,
+  compact = false,
 }: {
   notifications: AppNotification[];
   onMarkRead?: (notification: AppNotification) => void | Promise<void>;
   onMarkAllRead?: () => void | Promise<void>;
   emptyMessage?: ReactNode;
   className?: string;
+  /** Use compact one-line rows, intended for the bell popup. */
+  compact?: boolean;
 }) {
   const unread = notifications.filter((notification) => !notification.read);
   return (
@@ -35,6 +38,7 @@ export function NotificationList({
             key={notification.id}
             notification={notification}
             onMarkRead={onMarkRead}
+            compact={compact}
           />
         ))
       ) : (

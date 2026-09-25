@@ -1,7 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { AuditLogViewer, NotificationBell, NotificationsPage } from '../index';
+import {
+  AuditLogViewer,
+  NotificationBell,
+  NotificationList,
+  NotificationsPage,
+} from '../index';
 import { CreateApiKeyDialog } from '../widgets/create-api-key-dialog';
 
 describe('notifications, audit logs, and API-key refinements', () => {
@@ -25,6 +30,10 @@ describe('notifications, audit logs, and API-key refinements', () => {
           onMarkAllRead={onMarkAllRead}
           onViewAll={onViewAll}
         />
+        <NotificationList
+          notifications={[notification]}
+          onMarkRead={onMarkRead}
+        />
         <NotificationsPage
           notifications={[]}
           preferences={[
@@ -36,11 +45,11 @@ describe('notifications, audit logs, and API-key refinements', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /Notifications/ }));
-    await user.click(screen.getByRole('button', { name: 'Mark read' }));
     await user.click(screen.getByRole('button', { name: 'Mark all as read' }));
     await user.click(
       screen.getByRole('button', { name: 'Show all notifications' }),
     );
+    await user.click(screen.getByRole('button', { name: 'Mark read' }));
     await user.click(
       screen.getByRole('checkbox', { name: 'Enable Billing updates' }),
     );
@@ -84,6 +93,27 @@ describe('notifications, audit logs, and API-key refinements', () => {
     expect(
       screen.getByRole('button', { name: 'Show all notifications' }),
     ).toBeVisible();
+  });
+
+  it('uses one-line truncated rows in the bell preview', async () => {
+    const user = userEvent.setup();
+    render(
+      <NotificationBell
+        notifications={[
+          {
+            id: 'long-notice',
+            title: 'A very long notification title',
+            description:
+              'with a detailed message that belongs on the full page',
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Notifications/ }));
+    expect(
+      screen.getByText('A very long notification title').parentElement,
+    ).toHaveClass('truncate');
   });
 
   it('renders application-owned audit events and asks for more history', async () => {
