@@ -15,7 +15,7 @@ describe('notifications, audit logs, and API-key refinements', () => {
     const onMarkRead = vi.fn();
     const onMarkAllRead = vi.fn();
     const onPreferenceChange = vi.fn();
-    const onViewAll = vi.fn();
+    const onShowAll = vi.fn();
     const notification = {
       id: 'notice_1',
       title: 'Invoice paid',
@@ -28,7 +28,8 @@ describe('notifications, audit logs, and API-key refinements', () => {
           notifications={[notification]}
           onMarkRead={onMarkRead}
           onMarkAllRead={onMarkAllRead}
-          onViewAll={onViewAll}
+          showAll
+          onShowAll={onShowAll}
         />
         <NotificationList
           notifications={[notification]}
@@ -56,7 +57,7 @@ describe('notifications, audit logs, and API-key refinements', () => {
 
     expect(onMarkRead).toHaveBeenCalledWith(notification);
     expect(onMarkAllRead).toHaveBeenCalledOnce();
-    expect(onViewAll).toHaveBeenCalledOnce();
+    expect(onShowAll).toHaveBeenCalledOnce();
     expect(onPreferenceChange).toHaveBeenCalledWith(
       { id: 'billing', label: 'Billing updates', enabled: true },
       false,

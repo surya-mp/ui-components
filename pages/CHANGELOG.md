@@ -1,5 +1,12 @@
 # @sypra-ui/pages
 
+## 0.9.0
+
+### Minor Changes
+
+- Add explicit `showAll` and `onShowAll` notification-bell props alongside the
+  existing `onViewAll` compatibility alias.
+
 ## 0.8.0
 
 ### Minor Changes

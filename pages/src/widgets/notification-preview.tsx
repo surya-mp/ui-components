@@ -6,7 +6,8 @@ export function NotificationPreview({
   notifications,
   onMarkRead,
   onMarkAllRead,
-  onViewAll,
+  onShowAll,
+  showAll = Boolean(onShowAll),
   label = 'Notifications',
   viewAllLabel = 'Show all notifications',
   previewLimit = 5,
@@ -14,7 +15,8 @@ export function NotificationPreview({
   notifications: AppNotification[];
   onMarkRead?: (notification: AppNotification) => void | Promise<void>;
   onMarkAllRead?: () => void | Promise<void>;
-  onViewAll?: () => void;
+  onShowAll?: () => void;
+  showAll?: boolean;
   label?: string;
   viewAllLabel?: string;
   previewLimit?: number;
@@ -30,13 +32,13 @@ export function NotificationPreview({
         onMarkAllRead={onMarkAllRead}
         compact
       />
-      {onViewAll && (
+      {showAll && onShowAll && (
         <div className="border-t border-[hsl(var(--rui-border))] p-2">
           <Button
             type="button"
             variant="ghost"
             className="w-full"
-            onClick={onViewAll}
+            onClick={onShowAll}
           >
             {viewAllLabel}
           </Button>

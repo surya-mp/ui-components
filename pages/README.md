@@ -90,13 +90,14 @@ same way: fetch and retain events in your backend, then pass them in.
 
 The bell popup renders the first five supplied notifications (pass them in
 newest-first order) and retains the unread count for the complete collection.
-Use `onViewAll` to connect it to your router, and render the same page at that
-route with `standalone` enabled:
+Use `showAll` and `onShowAll` to connect it to your router, and render the
+same page at that route with `standalone` enabled:
 
 ```tsx
 <NotificationBell
   notifications={notifications}
-  onViewAll={() => router.push('/notifications')}
+  showAll
+  onShowAll={() => router.push('/notifications')}
 />
 
 <NotificationsPage standalone notifications={notifications} />
