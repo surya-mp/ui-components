@@ -5,3 +5,5 @@
 - Initial release of the Zanzibar-inspired relationship-based access-control engine.
 - Includes tuple-to-userset rewrites, contextual tuples, consistency-token
   propagation, bulk checks, model validation, and server-side enforcement.
+- Adds bounded authorization work, structured decision traces, relationship
+  subject constraints, and version/watch contracts for tuple stores.

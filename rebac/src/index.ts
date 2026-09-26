@@ -1,25 +1,46 @@
-export { AuthorizationError, RebacEngine } from './engine';
-export { InMemoryTupleStore } from './memory-store';
+export {
+  AuthorizationError,
+  AuthorizationLimitError,
+  RebacEngine,
+} from './engine';
+export { InMemoryTupleStore, RevisionUnavailableError } from './memory-store';
 export {
   computed,
   difference,
   from,
+  getAllowedSubjects,
+  getRelationRewrite,
   intersection,
   object,
+  relation,
   subject,
+  subjectType,
   thisRelation,
   union,
   AuthorizationModelError,
+  RelationshipTupleError,
   validateAuthorizationModel,
+  validateRelationshipTuple,
 } from './model';
 export type {
+  AuthorizationDecision,
+  AuthorizationLimits,
+  AuthorizationMetrics,
   AuthorizationModel,
   CheckRequest,
+  DecisionTraceNode,
   ObjectReference,
+  RebacEngineOptions,
+  RelationDefinition,
   RelationshipTuple,
   SubjectReference,
+  SubjectTypeConstraint,
+  TupleChange,
   TupleFilter,
   TupleReadOptions,
   TupleStore,
+  TupleWatchOptions,
   UsersetRewrite,
+  VersionedTupleStore,
+  WatchableTupleStore,
 } from './types';
