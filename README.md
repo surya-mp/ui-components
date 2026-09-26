@@ -1,11 +1,12 @@
 # Sypra UI
 
-Frontend-only React + TypeScript components and SaaS page compositions, organized as a pnpm/Turborepo workspace.
+React + TypeScript UI packages and a reusable authorization package, organized as a pnpm/Turborepo workspace.
 
 ## Packages
 
 - `@sypra-ui/ui` — accessible primitives, overlay, navigation, feedback, layout, and data components.
 - `@sypra-ui/pages` — callback/data-driven auth, settings, security, API key, billing, and marketing compositions.
+- `@sypra-ui/rebac` — a Zanzibar-inspired relationship-based access-control evaluator and tuple store.
 - `apps/showcase` — private interactive visual documentation and test app;
   it is not published.
 
@@ -15,6 +16,7 @@ Frontend-only React + TypeScript components and SaaS page compositions, organize
 pnpm install
 pnpm --filter @sypra-ui/ui build
 pnpm --filter @sypra-ui/pages build
+pnpm --filter @sypra-ui/rebac build
 pnpm dev
 ```
 
@@ -32,5 +34,5 @@ applications retain ownership of APIs, routing, auth, and payments.
 Before pushing a publishable change, update the affected package version and
 its changelog. A push to `main` runs the checks, publishes package versions
 that are not yet on npm, and pushes their Git tags. Configure npm Trusted
-Publishing for both packages against `.github/workflows/release.yml` before the
+Publishing for all public packages against `.github/workflows/release.yml` before the
 first automated release.

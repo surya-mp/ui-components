@@ -1,0 +1,43 @@
+{
+  "name": "@sypra-ui/rebac",
+  "version": "0.1.0",
+  "description": "A small Zanzibar-inspired relationship-based access control engine.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/surya-mp/ui-components.git",
+    "directory": "rebac"
+  },
+  "homepage": "https://github.com/surya-mp/ui-components#readme",
+  "bugs": "https://github.com/surya-mp/ui-components/issues",
+  "keywords": [
+    "access-control",
+    "authorization",
+    "rebac",
+    "typescript",
+    "zanzibar"
+  ],
+  "type": "module",
+  "publishConfig": { "access": "public" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --sourcemap --clean",
+    "prepack": "pnpm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src && prettier --check src"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
