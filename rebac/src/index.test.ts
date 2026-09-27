@@ -3,6 +3,7 @@ import {
   AuthorizationError,
   AuthorizationLimitError,
   computed,
+  ConsistencyRequirementError,
   difference,
   from,
   InMemoryTupleStore,
@@ -11,10 +12,12 @@ import {
   RebacEngine,
   RelationshipTupleError,
   RevisionUnavailableError,
+  RevisionExpiredError,
   relation,
   subject,
   subjectType,
   thisRelation,
+  TuplePreconditionError,
   union,
   validateAuthorizationModel,
   type AuthorizationModel,
@@ -195,14 +198,18 @@ describe('RebacEngine', () => {
       subject: subject('user', 'anne'),
     };
     const store = new InMemoryTupleStore([tuple, { ...tuple }]);
-    expect(store.write({ ...tuple, resource: { ...tuple.resource } })).toBe(0);
+    await expect(
+      store.write({ writes: [{ ...tuple, resource: { ...tuple.resource } }] }),
+    ).resolves.toMatchObject({ writes: 0 });
     await expect(store.list()).resolves.toHaveLength(1);
     const listed = await store.list();
     listed[0]!.subject.id = 'changed';
     await expect(
       store.list({ subject: subject('user', 'anne') }),
     ).resolves.toHaveLength(1);
-    expect(store.delete({ ...tuple, subject: { ...tuple.subject } })).toBe(1);
+    await expect(
+      store.write({ deletes: [{ ...tuple, subject: { ...tuple.subject } }] }),
+    ).resolves.toMatchObject({ deletes: 1 });
   });
 
   it('passes a request consistency token and cancellation signal to the tuple store', async () => {
@@ -330,7 +337,7 @@ describe('RebacEngine', () => {
       relation: 'reader',
       subject: subject('user', 'anne'),
     };
-    store.write(tuple);
+    await store.write({ writes: [tuple] });
 
     await expect(nextChange).resolves.toMatchObject({
       done: false,
@@ -340,5 +347,123 @@ describe('RebacEngine', () => {
       store.list({}, { consistencyToken: '2' }),
     ).rejects.toBeInstanceOf(RevisionUnavailableError);
     await iterator.return?.();
+  });
+
+  it('supports paginated reads, preconditioned writes, expansion, and resumable watches', async () => {
+    const document = object('document', 'guide');
+    const anne = subject('user', 'anne');
+    const bob = subject('user', 'bob');
+    const store = new InMemoryTupleStore(
+      [
+        { resource: document, relation: 'reader', subject: anne },
+        { resource: document, relation: 'reader', subject: bob },
+      ],
+      { historyLimit: 1 },
+    );
+    const engine = new RebacEngine(model, store);
+
+    const firstPage = await engine.read({
+      filter: { resource: document, relation: 'reader' },
+      pageSize: 1,
+    });
+    const secondPage = await engine.read({
+      filter: { resource: document, relation: 'reader' },
+      pageSize: 1,
+      pageToken: firstPage.nextPageToken,
+    });
+    expect(firstPage.tuples).toHaveLength(1);
+    expect(secondPage.tuples).toHaveLength(1);
+
+    await expect(
+      engine.write({
+        preconditions: [
+          {
+            operation: 'mustMatch',
+            filter: { resource: document, subject: anne },
+          },
+        ],
+        writes: [
+          {
+            resource: document,
+            relation: 'reader',
+            subject: subject('user', 'casey'),
+          },
+        ],
+      }),
+    ).resolves.toMatchObject({ revision: '1', writes: 1 });
+    await expect(
+      engine.write({
+        preconditions: [
+          {
+            operation: 'mustNotMatch',
+            filter: { resource: document, subject: anne },
+          },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(TuplePreconditionError);
+
+    const expansion = await engine.expand({
+      resource: document,
+      relation: 'reader',
+    });
+    expect(expansion.tree).toMatchObject({
+      kind: 'relation',
+      relation: 'reader',
+    });
+    expect(expansion.tree.children?.[0]).toMatchObject({
+      kind: 'direct',
+      subjects: [anne, bob, subject('user', 'casey')],
+    });
+    await expect(
+      store.list({}, { consistency: { mode: 'at-least-as-fresh' } }),
+    ).rejects.toBeInstanceOf(ConsistencyRequirementError);
+
+    await engine.write({
+      writes: [
+        {
+          resource: document,
+          relation: 'reader',
+          subject: subject('user', 'drew'),
+        },
+      ],
+    });
+    const iterator = store.watch({ after: '0' })[Symbol.asyncIterator]();
+    await expect(iterator.next()).rejects.toBeInstanceOf(RevisionExpiredError);
+  });
+
+  it('expands nested usersets without flattening their relationship structure', async () => {
+    const document = object('document', 'guide');
+    const group = object('group', 'engineering');
+    const engine = new RebacEngine(
+      model,
+      new InMemoryTupleStore([
+        {
+          resource: group,
+          relation: 'member',
+          subject: subject('user', 'anne'),
+        },
+        {
+          resource: document,
+          relation: 'reader',
+          subject: subject('group', 'engineering', 'member'),
+        },
+      ]),
+    );
+
+    const expansion = await engine.expand({
+      resource: document,
+      relation: 'reader',
+    });
+
+    expect(expansion.tree.children?.[0]).toMatchObject({
+      kind: 'direct',
+      children: [
+        {
+          kind: 'relation',
+          resource: group,
+          relation: 'member',
+        },
+      ],
+    });
   });
 });

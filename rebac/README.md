@@ -187,10 +187,12 @@ transaction too, so invalid data never enters durable storage.
 
 ## Production tuple store
 
-Implement `TupleStore` over the application's database. The engine passes the
-same opaque `consistencyToken` and `AbortSignal` to every relationship read in
-one check; map the token to the datastore snapshot, replica, or transaction
-your application uses.
+Implement `TupleStore` over the application's database. Add
+`ReadableTupleStore`, `WritableTupleStore`, and `WatchableTupleStore` when the
+application needs the corresponding public operations. The engine passes the
+same opaque revision and consistency requirement to every relationship read in
+one check; map them to the datastore snapshot, replica, or transaction your
+application uses.
 
 ```ts
 import type {
@@ -215,6 +217,33 @@ const store: TupleStore = {
 };
 ```
 
+`engine.read()` exposes a paginated, model-validated tuple read when the store
+implements `ReadableTupleStore`. Never use it as an unbounded listing API.
+
+```ts
+const page = await rebac.read({
+  filter: { resource: guide, relation: 'reader' },
+  pageSize: 100,
+});
+```
+
+`engine.write()` validates tuples against the model, then delegates to the
+atomic `WritableTupleStore.write()` boundary. Evaluate all preconditions before
+any tuple changes, commit the writes/deletes together, and return the resulting
+revision. `mustMatch` requires at least one matching tuple; `mustNotMatch`
+requires none.
+
+```ts
+await rebac.write({
+  preconditions: [
+    { operation: 'mustMatch', filter: { resource: guide, relation: 'owner' } },
+  ],
+  writes: [
+    { resource: guide, relation: 'reader', subject: subject('user', 'anne') },
+  ],
+});
+```
+
 `contextualTuples` can add request-only facts without persisting them—for
 example, a relationship verified by an upstream system during the same
 request. They only grant access for that individual check.
@@ -233,8 +262,9 @@ await rebac.check({
 ## Revisions and change watches
 
 `VersionedTupleStore` adds `getRevision()`. `WatchableTupleStore` adds an async
-`watch()` stream of writes and deletes. `InMemoryTupleStore` implements both
-for tests and local tools; its numeric revisions are not distributed tokens.
+`watch()` stream of writes and deletes, and `getEarliestRevision()` makes
+retention explicit. `InMemoryTupleStore` implements these interfaces for tests
+and local tools; its numeric revisions are not distributed tokens.
 
 ```ts
 const revision = await store.getRevision();
@@ -244,9 +274,44 @@ for await (const change of store.watch({ after: revision })) {
 }
 ```
 
-For a real datastore, make `consistencyToken` refer to a readable snapshot and
-make `watch({ after })` resume from an ordered durable change stream. The core
-evaluator passes the same token to every tuple read in a decision. This is the
+Watch implementations must retain ordered events long enough to resume from
+the advertised earliest revision. If a requested revision was compacted, throw
+`RevisionExpiredError` so the client can take a new snapshot instead of missing
+authorization changes.
+
+Every check, expansion, read, and write can declare one of three consistency
+modes. `minimize-latency` permits a replica-selected read;
+`at-least-as-fresh` requires a supplied revision token; and `fully-consistent`
+requires the backing store's strongest read. The in-memory store is a single
+process, so all successful reads are current-process consistent.
+
+```ts
+const revision = await store.getRevision();
+await rebac.check({
+  resource: guide,
+  permission: 'viewer',
+  subject: subject('user', 'anne'),
+  consistency: { mode: 'at-least-as-fresh', token: revision },
+});
+```
+
+## Expand a userset
+
+`expand()` returns the evaluated userset tree for a resource relation. It
+preserves unions, intersections, differences, computed usersets, and
+tuple-to-userset traversal instead of flattening a potentially huge graph.
+
+```ts
+const expansion = await rebac.expand({
+  resource: guide,
+  relation: 'viewer',
+});
+
+console.log(expansion.tree);
+```
+
+For a real datastore, make revisions refer to a readable snapshot and make
+`watch({ after })` resume from an ordered durable change stream. This is the
 integration boundary for Zanzibar-style revision handling; multi-region
 replication, retention, conflict resolution, and read-after-write guarantees
 remain the responsibility of the backing authorization service or datastore.

@@ -40,8 +40,19 @@ export type TupleFilter = {
 export type TupleReadOptions = {
   /** An opaque datastore snapshot or consistency token. */
   consistencyToken?: string;
+  /** A datastore-level consistency requirement for this read. */
+  consistency?: ConsistencyRequirement;
   /** Stops a pending authorization request when supported by the datastore. */
   signal?: AbortSignal;
+};
+
+export type ConsistencyMode =
+  'minimize-latency' | 'at-least-as-fresh' | 'fully-consistent';
+
+export type ConsistencyRequirement = {
+  mode: ConsistencyMode;
+  /** Required for at-least-as-fresh reads; opaque to the evaluator. */
+  token?: string;
 };
 
 export interface TupleStore {
@@ -51,8 +62,45 @@ export interface TupleStore {
   ): Promise<RelationshipTuple[]>;
 }
 
+export type TupleReadRequest = TupleReadOptions & {
+  filter?: TupleFilter;
+  pageSize?: number;
+  pageToken?: string;
+};
+
+export type TupleReadPage = {
+  tuples: RelationshipTuple[];
+  nextPageToken?: string;
+  revision: string;
+};
+
+export interface ReadableTupleStore extends TupleStore {
+  read(request?: TupleReadRequest): Promise<TupleReadPage>;
+}
+
 export interface VersionedTupleStore extends TupleStore {
   getRevision(options?: TupleReadOptions): Promise<string>;
+}
+
+export type TuplePrecondition = {
+  operation: 'mustMatch' | 'mustNotMatch';
+  filter: TupleFilter;
+};
+
+export type TupleWriteRequest = TupleReadOptions & {
+  writes?: readonly RelationshipTuple[];
+  deletes?: readonly RelationshipTuple[];
+  preconditions?: readonly TuplePrecondition[];
+};
+
+export type TupleWriteResult = {
+  revision: string;
+  writes: number;
+  deletes: number;
+};
+
+export interface WritableTupleStore extends VersionedTupleStore {
+  write(request: TupleWriteRequest): Promise<TupleWriteResult>;
 }
 
 export type TupleChange = {
@@ -68,6 +116,8 @@ export type TupleWatchOptions = TupleReadOptions & {
 };
 
 export interface WatchableTupleStore extends VersionedTupleStore {
+  /** The oldest revision that can be used as a watch resume point. */
+  getEarliestRevision(options?: TupleReadOptions): Promise<string>;
   watch(options?: TupleWatchOptions): AsyncIterable<TupleChange>;
 }
 
@@ -117,6 +167,42 @@ export type AuthorizationDecision = {
   trace: DecisionTraceNode;
 };
 
+export type UsersetTreeNode = {
+  kind:
+    | 'relation'
+    | 'direct'
+    | 'computed'
+    | 'tuple-to-userset'
+    | 'union'
+    | 'intersection'
+    | 'difference'
+    | 'cycle'
+    | 'missing-relation';
+  resource?: ObjectReference;
+  relation?: string;
+  subjects?: SubjectReference[];
+  children?: UsersetTreeNode[];
+};
+
+export type ExpandRequest = {
+  resource: ObjectReference;
+  relation: string;
+  contextualTuples?: readonly RelationshipTuple[];
+  consistencyToken?: string;
+  consistency?: ConsistencyRequirement;
+  signal?: AbortSignal;
+  maxDepth?: number;
+  limits?: Partial<AuthorizationLimits>;
+};
+
+export type Expansion = {
+  resource: ObjectReference;
+  relation: string;
+  consistencyToken?: string;
+  metrics: AuthorizationMetrics;
+  tree: UsersetTreeNode;
+};
+
 export type CheckRequest = {
   resource: ObjectReference;
   permission: string;
@@ -125,6 +211,7 @@ export type CheckRequest = {
   contextualTuples?: readonly RelationshipTuple[];
   /** Passed unchanged to every tuple read made for this check. */
   consistencyToken?: string;
+  consistency?: ConsistencyRequirement;
   signal?: AbortSignal;
   maxDepth?: number;
   limits?: Partial<AuthorizationLimits>;

@@ -10,14 +10,23 @@ import type {
   AuthorizationModel,
   CheckRequest,
   DecisionTraceNode,
+  ExpandRequest,
+  Expansion,
   ObjectReference,
+  ReadableTupleStore,
   RebacEngineOptions,
   RelationshipTuple,
   SubjectReference,
   TupleFilter,
+  TupleReadPage,
+  TupleReadRequest,
   TupleReadOptions,
   TupleStore,
+  TupleWriteRequest,
+  TupleWriteResult,
+  UsersetTreeNode,
   UsersetRewrite,
+  WritableTupleStore,
 } from './types';
 
 const DEFAULT_LIMITS: AuthorizationLimits = {
@@ -35,6 +44,10 @@ const matchesFilter = (tuple: RelationshipTuple, filter: TupleFilter) =>
   (!filter.resource || sameObject(tuple.resource, filter.resource)) &&
   (filter.relation === undefined || tuple.relation === filter.relation) &&
   (!filter.subject || sameSubject(tuple.subject, filter.subject));
+const isReadableTupleStore = (store: TupleStore): store is ReadableTupleStore =>
+  'read' in store && typeof store.read === 'function';
+const isWritableTupleStore = (store: TupleStore): store is WritableTupleStore =>
+  'write' in store && typeof store.write === 'function';
 
 type Evaluation = { allowed: boolean; trace?: DecisionTraceNode };
 type EvaluationContext = {
@@ -62,6 +75,13 @@ export class AuthorizationLimitError extends Error {
   ) {
     super(`Authorization check exceeded ${limit}.`);
     this.name = 'AuthorizationLimitError';
+  }
+}
+
+export class UnsupportedTupleStoreOperationError extends Error {
+  constructor(readonly operation: 'read' | 'write') {
+    super(`The configured tuple store does not support ${operation}.`);
+    this.name = 'UnsupportedTupleStoreOperationError';
   }
 }
 
@@ -94,6 +114,54 @@ export class RebacEngine {
     };
   }
 
+  async read(request: TupleReadRequest = {}): Promise<TupleReadPage> {
+    if (!isReadableTupleStore(this.store)) {
+      throw new UnsupportedTupleStoreOperationError('read');
+    }
+    const page = await this.store.read(request);
+    page.tuples.forEach((tuple) =>
+      validateRelationshipTuple(this.model, tuple),
+    );
+    return page;
+  }
+
+  async write(request: TupleWriteRequest): Promise<TupleWriteResult> {
+    if (!isWritableTupleStore(this.store)) {
+      throw new UnsupportedTupleStoreOperationError('write');
+    }
+    (request.writes ?? []).forEach((tuple) =>
+      validateRelationshipTuple(this.model, tuple),
+    );
+    (request.deletes ?? []).forEach((tuple) =>
+      validateRelationshipTuple(this.model, tuple),
+    );
+    return this.store.write(request);
+  }
+
+  async expand(request: ExpandRequest): Promise<Expansion> {
+    const context: EvaluationContext = {
+      contextualTuples: request.contextualTuples ?? [],
+      limits: this.resolveLimits(request.limits, request.maxDepth),
+      metrics: { reads: 0, tuples: 0, evaluations: 0 },
+      readOptions: this.readOptions(request),
+      tracing: false,
+    };
+    const tree = await this.expandRelation(
+      request.resource,
+      request.relation,
+      context.limits.maxDepth,
+      new Set(),
+      context,
+    );
+    return {
+      resource: request.resource,
+      relation: request.relation,
+      consistencyToken: request.consistencyToken,
+      metrics: context.metrics,
+      tree,
+    };
+  }
+
   async checkMany(requests: readonly CheckRequest[]): Promise<boolean[]> {
     return Promise.all(requests.map((request) => this.check(request)));
   }
@@ -114,10 +182,7 @@ export class RebacEngine {
       contextualTuples: request.contextualTuples ?? [],
       limits: this.resolveLimits(request.limits, request.maxDepth),
       metrics: { reads: 0, tuples: 0, evaluations: 0 },
-      readOptions: {
-        consistencyToken: request.consistencyToken,
-        signal: request.signal,
-      },
+      readOptions: this.readOptions(request),
       tracing,
     };
     const result = await this.resolve(
@@ -187,6 +252,159 @@ export class RebacEngine {
       relation,
       children: nested.trace ? [nested.trace] : undefined,
     });
+  }
+
+  private async expandRelation(
+    resource: ObjectReference,
+    relation: string,
+    depth: number,
+    visited: Set<string>,
+    context: EvaluationContext,
+  ): Promise<UsersetTreeNode> {
+    this.throwIfAborted(context);
+    this.consume(context, 'evaluations');
+    if (depth < 0) {
+      throw new AuthorizationLimitError('maxDepth', { ...context.metrics });
+    }
+    const key = `${resource.type}:${resource.id}#${relation}`;
+    if (visited.has(key)) return { kind: 'cycle', resource, relation };
+    const definition = this.model.types[resource.type]?.relations[relation];
+    if (!definition) return { kind: 'missing-relation', resource, relation };
+    const child = await this.expandRewrite(
+      getRelationRewrite(definition),
+      resource,
+      relation,
+      depth - 1,
+      new Set(visited).add(key),
+      context,
+    );
+    return { kind: 'relation', resource, relation, children: [child] };
+  }
+
+  private async expandRewrite(
+    rewrite: UsersetRewrite,
+    resource: ObjectReference,
+    relation: string,
+    depth: number,
+    visited: Set<string>,
+    context: EvaluationContext,
+  ): Promise<UsersetTreeNode> {
+    if ('this' in rewrite) {
+      const tuples = await this.list({ resource, relation }, context);
+      const usersets = tuples.filter((tuple) => tuple.subject.relation);
+      return {
+        kind: 'direct',
+        resource,
+        relation,
+        subjects: tuples
+          .filter((tuple) => !tuple.subject.relation)
+          .map((tuple) => tuple.subject),
+        children: await Promise.all(
+          usersets.map((tuple) =>
+            this.expandRelation(
+              { type: tuple.subject.type, id: tuple.subject.id },
+              tuple.subject.relation!,
+              depth,
+              visited,
+              context,
+            ),
+          ),
+        ),
+      };
+    }
+    if ('computedUserset' in rewrite) {
+      return {
+        kind: 'computed',
+        resource,
+        relation: rewrite.computedUserset,
+        children: [
+          await this.expandRelation(
+            resource,
+            rewrite.computedUserset,
+            depth,
+            visited,
+            context,
+          ),
+        ],
+      };
+    }
+    if ('tupleToUserset' in rewrite) {
+      const tuples = await this.list(
+        { resource, relation: rewrite.tupleToUserset.tupleset },
+        context,
+      );
+      return {
+        kind: 'tuple-to-userset',
+        resource,
+        relation: rewrite.tupleToUserset.tupleset,
+        children: await Promise.all(
+          tuples.map((tuple) =>
+            this.expandRelation(
+              { type: tuple.subject.type, id: tuple.subject.id },
+              rewrite.tupleToUserset.computedUserset,
+              depth,
+              visited,
+              context,
+            ),
+          ),
+        ),
+      };
+    }
+    if ('union' in rewrite) {
+      return {
+        kind: 'union',
+        children: await Promise.all(
+          rewrite.union.map((item) =>
+            this.expandRewrite(
+              item,
+              resource,
+              relation,
+              depth,
+              visited,
+              context,
+            ),
+          ),
+        ),
+      };
+    }
+    if ('intersection' in rewrite) {
+      return {
+        kind: 'intersection',
+        children: await Promise.all(
+          rewrite.intersection.map((item) =>
+            this.expandRewrite(
+              item,
+              resource,
+              relation,
+              depth,
+              visited,
+              context,
+            ),
+          ),
+        ),
+      };
+    }
+    return {
+      kind: 'difference',
+      children: await Promise.all([
+        this.expandRewrite(
+          rewrite.difference.base,
+          resource,
+          relation,
+          depth,
+          visited,
+          context,
+        ),
+        this.expandRewrite(
+          rewrite.difference.subtract,
+          resource,
+          relation,
+          depth,
+          visited,
+          context,
+        ),
+      ]),
+    };
   }
 
   private async evaluate(
@@ -445,6 +663,22 @@ export class RebacEngine {
           DEFAULT_LIMITS.maxEvaluations,
         'maxEvaluations',
       ),
+    };
+  }
+
+  private readOptions(request: {
+    consistencyToken?: string;
+    consistency?: CheckRequest['consistency'];
+    signal?: AbortSignal;
+  }): TupleReadOptions {
+    return {
+      ...(request.consistencyToken === undefined
+        ? {}
+        : { consistencyToken: request.consistencyToken }),
+      ...(request.consistency === undefined
+        ? {}
+        : { consistency: request.consistency }),
+      ...(request.signal === undefined ? {} : { signal: request.signal }),
     };
   }
 

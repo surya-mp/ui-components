@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Adds userset expansion, paginated tuple reads, atomic tuple writes with
+  preconditions, explicit consistency modes, and resumable watch retention.
+
 ## 0.1.0
 
 - Initial release of the Zanzibar-inspired relationship-based access-control engine.

@@ -2,8 +2,16 @@ export {
   AuthorizationError,
   AuthorizationLimitError,
   RebacEngine,
+  UnsupportedTupleStoreOperationError,
 } from './engine';
-export { InMemoryTupleStore, RevisionUnavailableError } from './memory-store';
+export {
+  ConsistencyRequirementError,
+  InMemoryTupleStore,
+  RevisionExpiredError,
+  RevisionUnavailableError,
+  TuplePreconditionError,
+} from './memory-store';
+export type { InMemoryTupleStoreOptions } from './memory-store';
 export {
   computed,
   difference,
@@ -28,9 +36,14 @@ export type {
   AuthorizationMetrics,
   AuthorizationModel,
   CheckRequest,
+  ConsistencyMode,
+  ConsistencyRequirement,
   DecisionTraceNode,
+  ExpandRequest,
+  Expansion,
   ObjectReference,
   RebacEngineOptions,
+  ReadableTupleStore,
   RelationDefinition,
   RelationshipTuple,
   SubjectReference,
@@ -38,9 +51,16 @@ export type {
   TupleChange,
   TupleFilter,
   TupleReadOptions,
+  TupleReadPage,
+  TupleReadRequest,
   TupleStore,
+  TuplePrecondition,
   TupleWatchOptions,
+  TupleWriteRequest,
+  TupleWriteResult,
   UsersetRewrite,
   VersionedTupleStore,
   WatchableTupleStore,
+  WritableTupleStore,
+  UsersetTreeNode,
 } from './types';

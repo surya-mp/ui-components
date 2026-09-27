@@ -1,11 +1,18 @@
 import type {
+  ReadableTupleStore,
   RelationshipTuple,
   SubjectReference,
   TupleChange,
   TupleFilter,
+  TuplePrecondition,
   TupleReadOptions,
+  TupleReadPage,
+  TupleReadRequest,
   TupleWatchOptions,
+  TupleWriteRequest,
+  TupleWriteResult,
   WatchableTupleStore,
+  WritableTupleStore,
 } from './types';
 
 const sameObject = (
@@ -40,14 +47,59 @@ export class RevisionUnavailableError extends Error {
   }
 }
 
-export class InMemoryTupleStore implements WatchableTupleStore {
+export class RevisionExpiredError extends Error {
+  constructor(
+    readonly requested: string,
+    readonly earliestAvailable: string,
+  ) {
+    super(
+      `Revision ${requested} has expired; resume from ${earliestAvailable} or later.`,
+    );
+    this.name = 'RevisionExpiredError';
+  }
+}
+
+export class TuplePreconditionError extends Error {
+  constructor(readonly precondition: TuplePrecondition) {
+    super(`Tuple precondition ${precondition.operation} failed.`);
+    this.name = 'TuplePreconditionError';
+  }
+}
+
+export class ConsistencyRequirementError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConsistencyRequirementError';
+  }
+}
+
+export type InMemoryTupleStoreOptions = {
+  /** Number of change events retained for resumable watches. */
+  historyLimit?: number;
+};
+
+export class InMemoryTupleStore
+  implements ReadableTupleStore, WritableTupleStore, WatchableTupleStore
+{
   private tuples: RelationshipTuple[] = [];
   private revision = 0;
-  // ponytail: unbounded local history; production stores should retain and compact revisions.
+  // ponytail: process-local history; use a durable change log for production watches.
   private changes: TupleChange[] = [];
   private waiters = new Set<() => void>();
+  private readonly historyLimit: number;
 
-  constructor(tuples: RelationshipTuple[] = []) {
+  constructor(
+    tuples: RelationshipTuple[] = [],
+    options: InMemoryTupleStoreOptions = {},
+  ) {
+    this.historyLimit = options.historyLimit ?? Number.POSITIVE_INFINITY;
+    if (
+      (!Number.isSafeInteger(this.historyLimit) &&
+        this.historyLimit !== Infinity) ||
+      this.historyLimit < 0
+    ) {
+      throw new RangeError('historyLimit must be a non-negative integer.');
+    }
     for (const tuple of tuples) {
       if (!this.tuples.some((candidate) => sameTuple(candidate, tuple))) {
         this.tuples.push(copyTuple(tuple));
@@ -59,65 +111,120 @@ export class InMemoryTupleStore implements WatchableTupleStore {
     filter: TupleFilter = {},
     options?: TupleReadOptions,
   ): Promise<RelationshipTuple[]> {
-    if (options?.signal?.aborted) {
-      throw options.signal.reason ?? new Error('Tuple read aborted.');
-    }
-    this.assertRevision(options?.consistencyToken);
+    this.assertReadable(options);
     return this.tuples
       .filter((tuple) => matchesFilter(tuple, filter))
       .map(copyTuple);
   }
 
-  async getRevision(options?: TupleReadOptions): Promise<string> {
-    if (options?.signal?.aborted) {
-      throw options.signal.reason ?? new Error('Tuple read aborted.');
+  async read(request: TupleReadRequest = {}): Promise<TupleReadPage> {
+    this.assertReadable(request);
+    const pageSize = request.pageSize ?? 100;
+    if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 1_000) {
+      throw new RangeError('pageSize must be an integer between 1 and 1000.');
     }
-    this.assertRevision(options?.consistencyToken);
+    const page = request.pageToken
+      ? this.parsePageToken(request.pageToken)
+      : { revision: this.revision, offset: 0 };
+    if (page.revision !== this.revision) {
+      throw new RevisionUnavailableError(
+        String(page.revision),
+        String(this.revision),
+      );
+    }
+    const tuples = this.tuples.filter((tuple) =>
+      matchesFilter(tuple, request.filter ?? {}),
+    );
+    const nextOffset = page.offset + pageSize;
+    return {
+      tuples: tuples.slice(page.offset, nextOffset).map(copyTuple),
+      ...(nextOffset < tuples.length
+        ? { nextPageToken: `${this.revision}:${nextOffset}` }
+        : {}),
+      revision: String(this.revision),
+    };
+  }
+
+  async getRevision(options?: TupleReadOptions): Promise<string> {
+    this.assertReadable(options);
     return String(this.revision);
   }
 
-  write(...tuples: RelationshipTuple[]): number {
-    const additions = tuples.filter(
-      (tuple, index) =>
+  async getEarliestRevision(options?: TupleReadOptions): Promise<string> {
+    this.assertReadable(options);
+    const first = this.changes[0];
+    return String(
+      first ? this.parseRevision(first.revision) - 1 : this.revision,
+    );
+  }
+
+  async write(request: TupleWriteRequest): Promise<TupleWriteResult> {
+    this.assertReadable(request);
+    for (const precondition of request.preconditions ?? []) {
+      const matches = this.tuples.some((tuple) =>
+        matchesFilter(tuple, precondition.filter),
+      );
+      if (
+        (precondition.operation === 'mustMatch' && !matches) ||
+        (precondition.operation === 'mustNotMatch' && matches)
+      ) {
+        throw new TuplePreconditionError(precondition);
+      }
+    }
+    const writes = (request.writes ?? []).filter(
+      (tuple, index, tuples) =>
         !this.tuples.some((candidate) => sameTuple(candidate, tuple)) &&
         !tuples
           .slice(0, index)
           .some((candidate) => sameTuple(candidate, tuple)),
     );
-    for (const tuple of additions) {
-      const copy = copyTuple(tuple);
-      this.tuples.push(copy);
-      this.record('write', copy);
+    const deletes = this.tuples.filter((candidate) =>
+      (request.deletes ?? []).some((tuple) => sameTuple(candidate, tuple)),
+    );
+    if (writes.length === 0 && deletes.length === 0) {
+      return { revision: String(this.revision), writes: 0, deletes: 0 };
     }
-    return additions.length;
-  }
-
-  delete(...tuples: RelationshipTuple[]): number {
-    const removals = this.tuples.filter((candidate) =>
-      tuples.some((tuple) => sameTuple(candidate, tuple)),
-    );
-    this.tuples = this.tuples.filter(
-      (candidate) => !removals.some((tuple) => sameTuple(candidate, tuple)),
-    );
-    for (const tuple of removals) this.record('delete', tuple);
-    return removals.length;
+    this.tuples = [
+      ...this.tuples.filter(
+        (candidate) => !deletes.some((tuple) => sameTuple(candidate, tuple)),
+      ),
+      ...writes.map(copyTuple),
+    ];
+    this.record([
+      ...writes.map((tuple) => ({ operation: 'write' as const, tuple })),
+      ...deletes.map((tuple) => ({ operation: 'delete' as const, tuple })),
+    ]);
+    return {
+      revision: String(this.revision),
+      writes: writes.length,
+      deletes: deletes.length,
+    };
   }
 
   async *watch(options: TupleWatchOptions = {}): AsyncIterable<TupleChange> {
-    let revision = this.parseRevision(options.after ?? '0');
+    this.assertReadable(options);
+    let revision = this.parseRevision(
+      options.after ?? options.consistency?.token ?? '0',
+    );
+    const earliest = this.parseRevision(
+      await this.getEarliestRevision(options),
+    );
+    if (revision < earliest) {
+      throw new RevisionExpiredError(String(revision), String(earliest));
+    }
     while (true) {
       if (options.signal?.aborted) {
         throw options.signal.reason ?? new Error('Tuple watch aborted.');
       }
-      const changes = this.changes.filter(
-        (change) =>
-          this.parseRevision(change.revision) > revision &&
-          (!options.filter || matchesFilter(change.tuple, options.filter)),
+      const pending = this.changes.filter(
+        (change) => this.parseRevision(change.revision) > revision,
       );
-      if (changes.length > 0) {
-        for (const change of changes) {
-          revision = this.parseRevision(change.revision);
-          yield { ...change, tuple: copyTuple(change.tuple) };
+      if (pending.length > 0) {
+        revision = this.parseRevision(pending[pending.length - 1]!.revision);
+        for (const change of pending) {
+          if (!options.filter || matchesFilter(change.tuple, options.filter)) {
+            yield { ...change, tuple: copyTuple(change.tuple) };
+          }
         }
         continue;
       }
@@ -126,17 +233,38 @@ export class InMemoryTupleStore implements WatchableTupleStore {
   }
 
   private record(
-    operation: TupleChange['operation'],
-    tuple: RelationshipTuple,
+    changes: Array<Pick<TupleChange, 'operation' | 'tuple'>>,
   ): void {
-    const change: TupleChange = {
-      operation,
-      tuple: copyTuple(tuple),
-      revision: String(++this.revision),
-    };
-    this.changes.push(change);
+    const revision = String(++this.revision);
+    this.changes.push(
+      ...changes.map((change) => ({
+        ...change,
+        tuple: copyTuple(change.tuple),
+        revision,
+      })),
+    );
+    if (this.changes.length > this.historyLimit) {
+      this.changes.splice(0, this.changes.length - this.historyLimit);
+    }
     this.waiters.forEach((resolve) => resolve());
     this.waiters.clear();
+  }
+
+  private assertReadable(options: TupleReadOptions | undefined): void {
+    if (options?.signal?.aborted) {
+      throw options.signal.reason ?? new Error('Tuple read aborted.');
+    }
+    if (
+      options?.consistency?.mode === 'at-least-as-fresh' &&
+      !options.consistency.token
+    ) {
+      throw new ConsistencyRequirementError(
+        'at-least-as-fresh reads require a consistency token.',
+      );
+    }
+    this.assertRevision(
+      options?.consistency?.token ?? options?.consistencyToken,
+    );
   }
 
   private assertRevision(token: string | undefined): void {
@@ -145,6 +273,17 @@ export class InMemoryTupleStore implements WatchableTupleStore {
     if (requested > this.revision) {
       throw new RevisionUnavailableError(token, String(this.revision));
     }
+  }
+
+  private parsePageToken(token: string): { revision: number; offset: number } {
+    const [revision, offset, extra] = token.split(':');
+    if (extra !== undefined || revision === undefined || offset === undefined) {
+      throw new RangeError('Invalid page token.');
+    }
+    return {
+      revision: this.parseRevision(revision),
+      offset: this.parseRevision(offset),
+    };
   }
 
   private parseRevision(revision: string): number {
